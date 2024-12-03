@@ -1,0 +1,20 @@
+{
+	"name": "persybooths.com",
+	"version": "1.0.0",
+	"description": "",
+	"main": "index.js",
+	"scripts": {
+		"build": "esbuild src/index.js --bundle --outfile=dist/bundle.js --minify",
+		"watch": "esbuild src/index.js --bundle --outfile=dist/bundle.js --sourcemap --watch"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"@barba/core": "^2.10.3",
+		"esbuild": "^0.24.0",
+		"gsap": "^3.12.5",
+		"lenis": "^1.1.16",
+		"split-type": "^0.3.4"
+	}
+}

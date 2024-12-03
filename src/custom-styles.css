@@ -1,0 +1,77 @@
+html.lenis,
+html.lenis body {
+	height: auto;
+}
+
+.lenis.lenis-smooth {
+	scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+	overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+	overflow: clip;
+}
+
+.lenis.lenis-smooth iframe {
+	pointer-events: none;
+}
+
+/* Menu animation */
+
+.menu_dropdown {
+	transform-origin: calc(100% - 0.5rem) 0.5rem;
+}
+
+.menu.is-open .button.is-menu-trigger {
+	color: var(--brand--orange);
+	background-color: var(--brand--black);
+}
+
+/* Case list */
+
+.projects_image,
+.projects_image-wrap {
+	transition: 0.75s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.projects_link:hover .projects_image {
+	scale: 1.1;
+}
+
+.projects_link:hover .projects_image-wrap {
+	border-radius: 1rem;
+}
+
+/* Project filters */
+[data-filters-tag="wrap"].display-none {
+	display: none;
+}
+
+/* Text reveal animation */
+
+.line {
+	transform: translateY(100%);
+}
+
+.home-hero_p-wrap .mask-wrap:first-child .line {
+	text-indent: 2rem;
+}
+
+[data-fade-reveal="target"] {
+	opacity: 0;
+	transform: translateY(24px);
+}
+
+/* Border reveal animation */
+
+.horizontal-divider {
+	transform: scaleX(0);
+	transform-origin: center;
+}
+.vertical-divider {
+	transform: scaleY(0);
+	transform-origin: center;
+}
