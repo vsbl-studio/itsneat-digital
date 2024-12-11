@@ -110,7 +110,8 @@ function barbaJS() {
 				name: "slide-transition",
 
 				async beforeLeave(data) {
-					window.fsAttributes.destroy();
+					await window.fsAttributes.destroy();
+
 					lenis.stop();
 				},
 
@@ -125,8 +126,8 @@ function barbaJS() {
 					await transitionIn(data);
 				},
 				async after() {
-					await window.fsAttributes.cmsfilter.init();
-					await window.fsAttributes.cmsload.init();
+					projectsFilters();
+
 					initAfterEnter();
 				},
 			},
@@ -459,51 +460,6 @@ async function projectCategoryCounter() {
 		const counterCategory = counterEl.getAttribute("data-category-counter");
 		counterEl.textContent = data["categoriesCount"][counterCategory];
 	});
-}
-
-function projectFiltersTag() {
-	function filterTagController(filtersData) {
-		const [filterValue] = filtersData.values;
-		if (!filterValue) {
-			filtersTag.classList.add("display-none");
-		} else {
-			// 1. Get active filter name and use it inside tag
-			filtersTagName.textContent = filterValue;
-			// 2. Get filter count and use it inside tag
-			const count = getCollectionCount(filterValue.toLowerCase());
-
-			filtersTagCounter.textContent = count;
-
-			// 3. Display tag if filters are active
-			filtersTag.classList.remove("display-none");
-		}
-	}
-
-	window.fsAttributes = window.fsAttributes || [];
-	window.fsAttributes.push([
-		"cmsfilter",
-		(filterInstances) => {
-			// The callback passes a `filterInstances` array with all the `CMSFilters` instances on the page.
-			const [filterInstance] = filterInstances;
-			const [filtersData] = filterInstance.filtersData;
-			const filterElements = filtersData.elements;
-
-			filtersTag.addEventListener("click", () => {
-				filterInstance.resetFilters();
-			});
-
-			filterElements.forEach((element) => {
-				setFilterCount(element);
-			});
-
-			const listInstance = filterInstance.listInstance;
-			listInstance.itemsPerPage = 2;
-			filterInstance.listInstance.on("renderitems", (renderedItems) => {
-				const totalItems = listInstance.validItems;
-				filterTagController(filtersData);
-			});
-		},
-	]);
 }
 
 function filtersDropdownAnimation() {
@@ -999,10 +955,10 @@ function hideEmptyCareerSection() {
 	}
 }
 
-function startPorjectPopup() {
+function startProjectPopup() {
 	const popupWrap = document.querySelector('[data-project-popup="wrap"]');
-	const popupTrigger = document.querySelector('[data-project-popup="trigger"]');
-	if (!popupWrap || !popupTrigger) return;
+	const popupTriggers = document.querySelectorAll('[data-project-popup="trigger"]');
+	if (!popupWrap || !popupTriggers.length) return;
 
 	const popup = popupWrap.querySelector('[data-project-popup="popup"]');
 	const overlay = popupWrap.querySelector('[data-project-popup="overlay"]');
@@ -1032,14 +988,18 @@ function startPorjectPopup() {
 
 	// Close action without animation
 	const closePopup = () => {
+		lenis.start();
 		gsap.set(popupWrap, {
 			display: "none",
 		});
 	};
 
 	// Trigger the opening animation
-	popupTrigger.addEventListener("click", () => {
-		openTl.restart();
+	popupTriggers.forEach((popupTrigger) => {
+		popupTrigger.addEventListener("click", () => {
+			lenis.stop();
+			openTl.restart();
+		});
 	});
 
 	// Trigger the close action
@@ -1142,30 +1102,6 @@ const customFormValidation = function () {
 	});
 };
 
-function cmsLoadMore() {
-	window.fsAttributes = window.fsAttributes || [];
-	window.fsAttributes.push([
-		"cmsload",
-		(listInstances) => {
-			console.log("cmsload Successfully loaded!");
-			// The callback passes a `listInstances` array with all the `CMSList` instances on the page.
-			const [listInstance] = listInstances;
-
-			const filterButtons = document.querySelectorAll("[data-filter-btn]");
-			filterButtons.forEach((btn) => {
-				btn.addEventListener("click", async () => {
-					listInstance.itemsPerPage = 2;
-				});
-			});
-
-			// The `renderitems` event runs whenever the list renders items after switching pages.
-			listInstance.on("renderitems", (renderedItems) => {});
-		},
-	]);
-
-	let isDestroyed = false;
-}
-
 function projectsListHover(link) {
 	const projectListLinks = document.querySelectorAll('[data-projects-list="link"]');
 	if (!projectListLinks.length) return;
@@ -1225,41 +1161,48 @@ function projectsListHover(link) {
 	});
 }
 
-function fsAttributes() {
-	window.fsAttributes = window.fsAttributes || [];
-	window.fsAttributes.push([
-		"cmsload",
-		(listInstances) => {
-			const [listInstance] = listInstances;
+async function projectsFilters() {
+	const cmsList = document.querySelector('[fs-cmsfilter-element="list"]');
+	if (!cmsList) return;
+	const filtersTag = document.querySelector('[data-filters-tag="wrap"]');
+	const filtersTagName = filtersTag.querySelector('[data-filters-tag="name"]');
+	const filtersTagCounter = filtersTag.querySelector('[data-filters-tag="counter"]');
 
-			// if (!listInstance) return;
-			// The `renderitems` event runs whenever the list renders items after switching pages.
-			listInstance.on("renderitems", (renderedItems) => {
-				console.log("RENDERING!!!");
-				setTimeout(() => {
-					ScrollTrigger.refresh();
-				}, 510);
+	// Re-initialize CMSFilter
+	const filterInstances = await window.fsAttributes.cmsfilter.init();
+	const [filterInstance] = filterInstances;
 
-				projectsListHover();
-			});
-		},
-	]);
+	function toggleTag() {
+		const [filterData] = filterInstance.filtersData;
+		const filterCount = filterInstance.listInstance.validItems.length;
+		const [filterValue] = filterData.values;
 
-	window.fsAttributes = window.fsAttributes || [];
-	window.fsAttributes.push([
-		"cmsfilter",
-		(filterInstances) => {
-			console.log("cmsfilter Successfully loaded!");
+		console.log(filterValue);
 
-			// The callback passes a `filterInstances` array with all the `CMSFilters` instances on the page.
-			const [filterInstance] = filterInstances;
+		if (!filterValue) {
+			filtersTag.classList.add("display-none");
+		} else {
+			// 1. Get active filter name and use it inside tag
+			filtersTagName.textContent = filterValue;
+			// 2. Get filter count and use it inside tag
+			filtersTagCounter.textContent = filterCount;
 
-			// The `renderitems` event runs whenever the list renders items after filtering.
-			filterInstance.listInstance.on("renderitems", (renderedItems) => {
-				console.log("RENDERING BUT FROM FILTERS");
-			});
-		},
-	]);
+			// 3. Display tag if filters are active
+			filtersTag.classList.remove("display-none");
+		}
+	}
+
+	filtersTag.addEventListener("click", () => {
+		filterInstance.resetFilters();
+	});
+
+	filterInstance.listInstance.on("renderitems", (renderedItems) => {
+		toggleTag();
+		projectsListHover();
+		setTimeout(() => {
+			ScrollTrigger.refresh();
+		}, 510);
+	});
 }
 
 function initBeforeEnter() {
@@ -1276,15 +1219,10 @@ function initBeforeEnter() {
 }
 
 function initAfterEnter() {
-	setTimeout(() => {
-		fsAttributes();
-	}, 2000);
 	footerParallax();
 	partnersMarqueeAnimation();
 	logoShrinkAnimation();
 	customCursorAnimation();
-	// Refactorint sita funkcija perdarant filtrus
-	// projectFiltersTag();
 	borderAnimation();
 	projectParallaxAnimation();
 	projectImageMarquee();
@@ -1294,16 +1232,10 @@ function initAfterEnter() {
 	horizontalScroll();
 	changingImages();
 	hideEmptyCareerSection();
-	startPorjectPopup();
+	startProjectPopup();
 	customFormValidation();
 	imageParallaxAnimation();
 	projectsListHover();
-
-	// The problem is that load more button reloads page after applying filters
-	// https://forum.finsweet.com/t/issue-with-cms-filters-and-cms-load-load-more-button-triggers-reload-of-page/3127?navigation_menu=null&filter=null&username_filters=null&replies_to_post_number=null
-	// https://forum.finsweet.com/t/using-load-more-with-filter/1591
-	// cmsLoadMore();
-
 	ScrollTrigger.refresh();
 }
 
@@ -1315,6 +1247,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	colorModeToggle();
 	menuAnimation();
 	overlayScrollbar();
+	projectsFilters();
 
 	// Init on page load
 	initBeforeEnter();
