@@ -265,10 +265,14 @@ function menuAnimation() {
 		.fromTo(
 			dropdown,
 			{
+				top: "0.5rem",
+				right: "0.5rem",
 				width: 0,
 				height: 0,
 			},
 			{
+				top: "-0.25rem",
+				right: "-0.25rem",
 				width: "auto",
 				height: "auto",
 				ease: "custom",
@@ -283,6 +287,7 @@ function menuAnimation() {
 			{
 				y: 0,
 				duration: 0.5,
+				stagger: 0.1,
 				ease: "custom",
 				onComplete: () => {
 					// Clear GSAP's inline transform style
@@ -338,7 +343,7 @@ function partnersMarqueeAnimation() {
 		scrub: true,
 		onUpdate: (self) => {
 			const velocity = Math.abs(self.getVelocity()); // Get absolute scroll velocity (handles both up and down scrolling)
-			const scrollSpeedFactor = Math.max(1, velocity / 100); // Scale speed proportionally to velocity
+			const scrollSpeedFactor = Math.max(1, velocity / 150); // Scale speed proportionally to velocity
 			updateSpeed(scrollSpeedFactor); // Update marquee speed dynamically
 		},
 		onLeave: () => {
@@ -488,10 +493,14 @@ function filtersDropdownAnimation() {
 		.fromTo(
 			dropdown,
 			{
+				top: "0.5rem",
+				left: "0.5rem",
 				width: 0,
 				height: 0,
 			},
 			{
+				top: "-0.25rem",
+				left: "-0.25rem",
 				width: "auto",
 				height: "auto",
 				ease: "custom",
@@ -734,7 +743,7 @@ function imageParallaxAnimation() {
 	if (!imageWraps.length) return;
 
 	imageWraps.forEach((wrap) => {
-		const image = wrap.querySelector("img");
+		const images = wrap.querySelectorAll("img");
 
 		let tl = gsap.timeline({
 			scrollTrigger: {
@@ -742,10 +751,11 @@ function imageParallaxAnimation() {
 				start: "top bottom",
 				end: "bottom top",
 				scrub: true,
+				markers: true,
 			},
 		});
 
-		tl.to(image, {
+		tl.to(images, {
 			top: "0%",
 			ease: "linear",
 		});
@@ -853,7 +863,6 @@ function categoriesImagesHover() {
 
 	categoryLinks.forEach((link, index) => {
 		const categoryName = link.getAttribute("data-category-link");
-		const icon = link.querySelector("[data-category-icon]");
 		const image = document.querySelector(`[data-category-image="${categoryName}"]`);
 
 		let tl = gsap.timeline({ paused: true });
@@ -862,15 +871,7 @@ function categoriesImagesHover() {
 			opacity: 1,
 			duration: 0.1,
 			ease: "linear",
-		}).to(
-			icon,
-			{
-				marginLeft: 0,
-				duration: 0.4,
-				ease: "power3.inOut",
-			},
-			"<"
-		);
+		});
 
 		timelines.push(tl);
 
@@ -1205,6 +1206,24 @@ async function projectsFilters() {
 	});
 }
 
+function categoryListURLs() {
+	const categoryLinks = document.querySelectorAll("[data-category-link]");
+	if (!categoryLinks.length) return;
+
+	function constructParam(categoryName) {
+		const params = new URLSearchParams({ category: categoryName });
+		return params.toString();
+	}
+
+	categoryLinks.forEach((link) => {
+		const categoryName = link.getAttribute("data-category-link");
+		const categoryParam = constructParam(categoryName);
+		const url = "/work-grid?" + categoryParam;
+
+		link.href = url;
+	});
+}
+
 function initBeforeEnter() {
 	// Kill all ScrollTriggers but keep inline styles
 	ScrollTrigger.getAll().forEach((trigger) => trigger.kill(false));
@@ -1234,8 +1253,9 @@ function initAfterEnter() {
 	hideEmptyCareerSection();
 	startProjectPopup();
 	customFormValidation();
-	imageParallaxAnimation();
 	projectsListHover();
+	categoryListURLs();
+	imageParallaxAnimation();
 	ScrollTrigger.refresh();
 }
 

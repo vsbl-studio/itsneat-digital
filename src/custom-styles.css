@@ -21,10 +21,6 @@ html.lenis body {
 
 /* Menu animation */
 
-.menu_dropdown {
-	transform-origin: calc(100% - 0.5rem) 0.5rem;
-}
-
 .menu.is-open .button.is-menu-trigger {
 	color: var(--brand--orange);
 	background-color: var(--brand--black);
@@ -48,6 +44,14 @@ html.lenis body {
 /* Project filters */
 [data-filters-tag="wrap"].display-none {
 	display: none;
+}
+
+.work-projects_tag_icon {
+	transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+[data-filters-tag="wrap"]:hover .work-projects_tag_icon {
+	transform: rotate(90deg);
 }
 
 /* Text reveal animation */
@@ -119,6 +123,16 @@ html.lenis body {
 	color: var(--color--text-primary);
 }
 
+.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(1),
+.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(1) {
+	transform: translateY(-100%);
+}
+
+.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(2),
+.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(2) {
+	transform: translateY(0%);
+}
+
 .form_privacy-field:has(input[type="checkbox"]:checked) .form_checkmark {
 	display: flex;
 }
@@ -162,4 +176,8 @@ html.lenis body {
 
 .menu_nav-link.is-current .menu_nav-icon {
 	margin-left: 0;
+}
+
+.menu_nav-link.is-current {
+	pointer-events: none;
 }
