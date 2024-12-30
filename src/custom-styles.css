@@ -11,26 +11,15 @@ html.lenis body {
 	overscroll-behavior: contain;
 }
 
-.lenis.lenis-stopped {
-	overflow: clip;
-}
-
 .lenis.lenis-smooth iframe {
 	pointer-events: none;
-}
-
-/* Menu animation */
-
-.menu.is-open .button.is-menu-trigger {
-	color: var(--brand--orange);
-	background-color: var(--brand--black);
 }
 
 /* Case list */
 
 .projects_image,
 .projects_image-wrap {
-	transition: 0.75s cubic-bezier(0.19, 1, 0.22, 1);
+	transition: scale 0.75s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .projects_link:hover .projects_image {
@@ -52,6 +41,26 @@ html.lenis body {
 
 [data-filters-tag="wrap"]:hover .work-projects_tag_icon {
 	transform: rotate(90deg);
+}
+
+.filters_icon {
+	transition: margin 0.3s ease;
+}
+
+.filters_radio-input.fs-cmsfilter_active .filters_icon {
+	margin-left: 0;
+}
+
+.filters_radio-input.fs-cmsfilter_active {
+	pointer-events: none;
+}
+
+.filters_radio-input.fs-cmsfilter_active .mask-wrap > :nth-child(1) {
+	transform: translateY(-100%);
+}
+
+.filters_radio-input.fs-cmsfilter_active .mask-wrap > :nth-child(2) {
+	transform: translateY(0%);
 }
 
 /* Text reveal animation */
@@ -109,11 +118,6 @@ html.lenis body {
 .faq_accordion_trigger:hover .faq_accordion_icon,
 .form_close-btn:hover .form_close-icon {
 	transform: rotate(90deg);
-}
-
-/* Services explore */
-.services-explore_image {
-	opacity: 0;
 }
 
 /* Project form */
@@ -180,4 +184,18 @@ html.lenis body {
 
 .menu_nav-link.is-current {
 	pointer-events: none;
+}
+
+[data-mask-btn].is-current .mask-wrap > :nth-child(1) {
+	transform: translateY(-100%);
+}
+
+[data-mask-btn].is-current .mask-wrap > :nth-child(2) {
+	transform: translateY(0%);
+}
+
+/* Hide scrollbar from body */
+
+body {
+	overflow: hidden;
 }

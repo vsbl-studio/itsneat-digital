@@ -17,62 +17,79 @@ function barbaJS() {
 	function transitionIn(data) {
 		return new Promise((resolve) => {
 			const prevContainer = data.current.container;
+			const prevContent = prevContainer.querySelector(".barba-content");
 			const nextContainer = data.next.container;
 			const overlay = prevContainer.querySelector(".transition_overlay");
 			const nextFooter = data.next.container.querySelector('[data-footer-parallax="content"]');
 			const logo = document.querySelector('[data-logo-animation="logo"]');
 
-			// Use the `logoWidth` set by the view
+			// Use the logoWidth set by the view
 			const targetLogoWidth = data.next.logoWidth || "auto";
+			gsap.to(
+				logo,
+				{
+					width: targetLogoWidth,
+					duration: 0.8,
+					ease: "power2.inOut",
+					onComplete: () => {
+						lenis.start();
+					},
+				},
+				"<"
+			);
 
 			let tl = gsap.timeline({
 				onComplete: () => {
 					gsap.set(nextContainer, {
-						position: "relative",
 						zIndex: 1,
 						// Removing inline transform because it acts as new stacking context for fixed elements (footer)
 						clearProps: "transform",
 					});
-					lenis.scrollTo(0, { immediate: true, force: true });
-					lenis.start();
 					resolve();
 				},
 			});
 
-			tl.set(overlay, {
-				display: "block",
+			tl.set(nextContainer, {
+				y: "100vh",
 			})
+				.set(nextContainer, {
+					zIndex: 3,
+				})
+				.set(overlay, {
+					display: "block",
+				})
 				.to(
 					overlay,
 					{
-						opacity: 0.6,
+						opacity: 0.7,
 						duration: 0.8,
 						ease: "linear",
 					},
 					"<"
 				)
 				.to(
-					prevContainer,
+					prevContent,
 					{
-						y: -400,
+						scale: 0.95,
 						duration: 1.8,
 						ease: "custom",
 					},
 					"<"
 				)
 				.to(
-					logo,
+					prevContent,
 					{
-						width: targetLogoWidth,
+						y: -300,
 						duration: 1.8,
 						ease: "custom",
 					},
 					"<"
 				)
-				.from(
+
+				.to(
 					nextContainer,
 					{
-						y: "100vh",
+						y: "0vh",
 						duration: 1.8,
 						ease: "custom",
 					},
@@ -82,14 +99,14 @@ function barbaJS() {
 	}
 
 	// Setting styles of next container
-	function prepareNextContainer(data) {
+	function prepareCurrentContainer(data) {
 		return new Promise((resolve) => {
-			gsap.set(data.next.container, {
-				position: "fixed",
-				top: 0,
+			gsap.set(data.current.container, {
 				zIndex: 2,
+				onComplete: () => {
+					resolve();
+				},
 			});
-			resolve();
 		});
 	}
 
@@ -110,24 +127,25 @@ function barbaJS() {
 				name: "slide-transition",
 
 				async beforeLeave(data) {
+					oldLenis = lenis;
 					await window.fsAttributes.destroy();
-
-					lenis.stop();
+					await prepareCurrentContainer(data);
+					oldLenis.stop();
 				},
 
 				async beforeEnter(data) {
-					initBeforeEnter();
-					await prepareNextContainer(data);
+					initBeforeEnter(data);
+					await new Promise((resolve) => setTimeout(resolve, 100));
 				},
 
 				// 2. Run transition
 				async enter(data) {
 					// Awaiting to complete transitionIn before barba removes previous container
+					lenis.stop();
 					await transitionIn(data);
+					oldLenis.destroy();
 				},
 				async after() {
-					projectsFilters();
-
 					initAfterEnter();
 				},
 			},
@@ -135,30 +153,49 @@ function barbaJS() {
 	});
 }
 
+function setGSAPScroller(data) {
+	const nextContainer = data?.next?.container;
+	const scroller = nextContainer ? nextContainer : ".main-wrapper";
+	// Set Global Scroller for ScrollTrigger
+	ScrollTrigger.defaults({
+		scroller: scroller,
+	});
+}
+
 // Global lenis instance
 let lenis;
-function smoothScroll() {
+let oldLenis;
+function smoothScroll(data) {
+	const nextContainer = data?.next?.container;
+	const container = nextContainer ? nextContainer : document;
+
+	const wrapper = nextContainer ? nextContainer : container.querySelector(".main-wrapper");
+	const content = container.querySelector(".main-content");
+
 	lenis = new Lenis({
 		lerp: 0.1,
+		wrapper: wrapper,
+		content: content,
+		eventsTarget: window,
 	});
 
-	// Synchronize Lenis scrolling with GSAP's ScrollTrigger plugin
 	lenis.on("scroll", ScrollTrigger.update);
 
-	// Add Lenis's requestAnimationFrame (raf) method to GSAP's ticker
-	// This ensures Lenis's smooth scroll animation updates on each GSAP tick
 	gsap.ticker.add((time) => {
-		lenis.raf(time * 1000); // Convert time from seconds to milliseconds
+		lenis.raf(time * 1000);
 	});
 
-	// Disable lag smoothing in GSAP to prevent any delay in scroll animations
 	gsap.ticker.lagSmoothing(0);
 }
+
 // Global overlay instance
 let osInstance;
-function overlayScrollbar() {
+let oldOsInstance;
+function overlayScrollbar(data) {
+	const nextContainer = data?.next?.container;
+	const container = nextContainer ? nextContainer : document.querySelector(".main-wrapper");
 	// Simple initialization with an element
-	osInstance = OverlayScrollbars(document.body, {});
+	osInstance = OverlayScrollbars(container, {});
 }
 
 function setActiveUrl() {
@@ -216,12 +253,16 @@ function colorModeToggle() {
 	});
 }
 
-function logoShrinkAnimation() {
+function logoShrinkAnimation(data) {
 	const logo = document.querySelector('[data-logo-animation="logo"]');
 	if (!logo) return;
+
+	const nextContainer = data?.next?.container;
+	const trigger = nextContainer ? nextContainer : ".main-wrapper";
+
 	const tl = gsap.timeline({
 		scrollTrigger: {
-			trigger: "body",
+			trigger: trigger,
 			start: "top top",
 			end: "+=380",
 			ease: "linear",
@@ -231,86 +272,82 @@ function logoShrinkAnimation() {
 
 	tl.to(logo, {
 		width: "2rem",
+		overwrite: "auto",
 	});
 }
 
 function menuAnimation() {
 	const menu = document.querySelector('[data-menu-animation="menu"]');
 	if (!menu) return;
-	const dropdown = document.querySelector('[data-menu-animation="dropdown"]');
+	const dropdown = menu.querySelector('[data-menu-animation="dropdown"]');
+	const button = menu.querySelector('[data-menu-animation="button"]');
+	const menuLinks = menu.querySelectorAll("[data-menu-link]");
 
-	// first button text element of each button/link
-	const menuText = document.querySelectorAll('[data-menu-animation="text"]');
-	let menuOpen = false;
+	let tl = gsap.timeline({ paused: true }); // Persistent timeline
 
-	const computedStyles = window.getComputedStyle(dropdown);
-	const initialBorderRadius = parseFloat(computedStyles.borderRadius); // Parse as a number
+	function animateDropdown(expand) {
+		// Clear the timeline and define new animation based on the state
+		tl.clear();
 
-	const tl = gsap.timeline({
-		paused: true,
-		onStart: () => {
-			menu.classList.add("is-open");
-		},
-		onReverseComplete: () => {
-			menu.classList.remove("is-open");
-		},
-	});
-
-	// 1. Set menu to display block
-	tl.set(dropdown, {
-		display: "block",
-	})
-
-		// 2. Animate dropdown
-		.fromTo(
-			dropdown,
-			{
+		if (expand) {
+			// Expand animation
+			tl.set(".menu_dropdown", {
+				pointerEvents: "auto",
+			})
+				.set(".menu_dropdown", { display: "block" }) // Ensure dropdown is visible
+				.set(button, {
+					color: "var(--brand--orange)",
+					background: "var(--brand--black)",
+				})
+				.to(
+					".menu_background",
+					{
+						top: 0,
+						right: 0,
+						width: "100%",
+						height: "100%",
+						ease: "custom",
+						duration: 1,
+					},
+					"<"
+				)
+				.fromTo(".menu_wrap", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "linear" }, "<+0.4");
+		} else {
+			// Contract animation
+			tl.set(".menu_dropdown", {
+				pointerEvents: "none",
+			});
+			tl.to(".menu_background", {
 				top: "0.5rem",
 				right: "0.5rem",
 				width: 0,
 				height: 0,
-			},
-			{
-				top: "-0.25rem",
-				right: "-0.25rem",
-				width: "auto",
-				height: "auto",
 				ease: "custom",
 				duration: 1,
-			}
-		)
-		.fromTo(
-			menuText,
-			{
-				y: "100%",
-			},
-			{
-				y: 0,
-				duration: 0.5,
-				stagger: 0.1,
-				ease: "custom",
-				onComplete: () => {
-					// Clear GSAP's inline transform style
-					menuText.forEach((el) => {
-						gsap.set(el, { clearProps: "transform" });
-					});
-				},
-			},
-			"<+0.15"
-		);
-
-	function toggleMenu() {
-		if (!menuOpen) {
-			tl.timeScale(1).play();
-			menuOpen = true;
-		} else {
-			tl.timeScale(1.5).reverse();
-			menuOpen = false;
+			})
+				.to(".menu_wrap", { opacity: 0, duration: 0.1, ease: "linear" }, "<")
+				.set(button, { color: "", background: "" }, "<")
+				.set(".menu_dropdown", { display: "none" }); // Hide dropdown
 		}
+
+		// Play the timeline
+		tl.play();
 	}
 
-	menu.addEventListener("mouseover", toggleMenu);
-	menu.addEventListener("mouseout", toggleMenu);
+	menuLinks.forEach((link) => {
+		link.addEventListener("click", () => {
+			animateDropdown(false);
+		});
+	});
+
+	// Event listeners for hover interactions
+	menu.addEventListener("mouseenter", () => {
+		animateDropdown(true); // Expand if not already expanded or reversing
+	});
+
+	menu.addEventListener("mouseleave", () => {
+		animateDropdown(false); // Contract if expanded or reversing
+	});
 }
 
 function partnersMarqueeAnimation() {
@@ -472,78 +509,80 @@ function filtersDropdownAnimation() {
 	if (!filters) return;
 
 	const button = filters.querySelector('[data-filters-dropdown="button"]');
-	const buttonText = filters.querySelector('[data-filters-dropdown="text"]');
-	const buttonIcon = filters.querySelector('[data-filters-dropdown="icon"]');
 	const dropdown = filters.querySelector('[data-filters-dropdown="dropdown"]');
+	const filtersBtns = filters.querySelectorAll('[data-filters-dropdown="filter"]');
 
-	// first button text element of each button/link
-	const menuText = document.querySelectorAll('[data-filters-dropdown="filter-text"]');
-	let filtersOpen = false;
+	let tl = gsap.timeline({ paused: true }); // Persistent timeline
 
-	const computedStyles = window.getComputedStyle(dropdown);
-	const initialBorderRadius = parseFloat(computedStyles.borderRadius); // Parse as a number
+	function animateDropdown(expand) {
+		// Clear the timeline and define new animation based on the state
+		tl.clear();
 
-	const tl = gsap.timeline({
-		paused: true,
-	});
-
-	tl.set(dropdown, {
-		display: "block",
-	})
-		.fromTo(
-			dropdown,
-			{
+		if (expand) {
+			// Expand animation
+			tl.set(".filters_dropdown", {
+				pointerEvents: "auto",
+			})
+				.set(dropdown, { display: "block" }) // Ensure dropdown is visible
+				.set(button, {
+					color: "var(--color--text-primary)",
+					background: "var(--color--bg-primary)",
+				})
+				.to(
+					".filters_background",
+					{
+						top: 0,
+						left: 0,
+						width: "100%",
+						height: "100%",
+						ease: "custom",
+						duration: 1,
+					},
+					"<"
+				)
+				.fromTo(".filters_form-block", { opacity: 0 }, { opacity: 1, duration: 0.2, ease: "linear" }, "<+0.3");
+		} else {
+			// Contract animation
+			tl.set(".filters_dropdown", {
+				pointerEvents: "none",
+			});
+			tl.to(".filters_background", {
 				top: "0.5rem",
 				left: "0.5rem",
 				width: 0,
 				height: 0,
-			},
-			{
-				top: "-0.25rem",
-				left: "-0.25rem",
-				width: "auto",
-				height: "auto",
 				ease: "custom",
 				duration: 1,
-			}
-		)
-		.fromTo(
-			menuText,
-			{
-				y: "100%",
-			},
-			{
-				y: 0,
-				duration: 0.5,
-				ease: "custom",
-				onComplete: () => {
-					// Clear GSAP's inline transform style
-					menuText.forEach((el) => {
-						gsap.set(el, { clearProps: "transform" });
-					});
-				},
-			},
-			"<+0.15"
-		);
-
-	function filtersDropdown() {
-		if (!filtersOpen) {
-			tl.timeScale(1).play();
-			filtersOpen = true;
-		} else {
-			tl.timeScale(1.5).reverse();
-			filtersOpen = false;
+			})
+				.to(".filters_form-block", { opacity: 0, duration: 0.1, ease: "linear" }, "<")
+				.set(button, { color: "", background: "", duration: 0.2 }, "<")
+				.set(dropdown, { display: "none" }); // Hide dropdown
 		}
+
+		// Play the timeline
+		tl.play();
 	}
 
-	filters.addEventListener("mouseover", () => {
-		filtersDropdown();
+	filtersBtns.forEach((btn) => {
+		btn.addEventListener("click", () => {
+			animateDropdown(false);
+		});
 	});
-	filters.addEventListener("mouseout", filtersDropdown);
+
+	// Event listeners for hover interactions
+	filters.addEventListener("mouseenter", () => {
+		animateDropdown(true); // Expand if not already expanded or reversing
+	});
+
+	filters.addEventListener("mouseleave", () => {
+		animateDropdown(false); // Contract if expanded or reversing
+	});
 }
 
-function splitTextIntoLines() {
-	const splitTargets = document.querySelectorAll('[data-split-text="target"]');
+function splitTextIntoLines(data) {
+	const container = data && data.next ? data.next.container : document;
+
+	const splitTargets = container.querySelectorAll('[data-split-text="target"]');
 	if (!splitTargets) return;
 
 	splitTargets.forEach((target) => {
@@ -551,8 +590,10 @@ function splitTextIntoLines() {
 	});
 }
 
-function wrapLinesInMask() {
-	const lines = document.querySelectorAll(".line");
+function wrapLinesInMask(data) {
+	const container = data && data.next ? data.next.container : document;
+
+	const lines = container.querySelectorAll(".line");
 	if (!lines.length) return;
 
 	lines.forEach((line) => {
@@ -566,26 +607,25 @@ function wrapLinesInMask() {
 	});
 }
 
-function textMaskRevealAnimation(delay = false) {
-	const maskWraps = document.querySelectorAll('[data-mask-reveal="wrap"]');
+function textMaskRevealAnimation(data) {
+	const container = data && data.next ? data.next.container : document;
+	const maskWraps = container.querySelectorAll('[data-mask-reveal="wrap"]');
 	if (!maskWraps.length) return;
-	let tl;
 	let delayValue = 0;
 
 	maskWraps.forEach((wrap) => {
+		let tl;
 		const lines = wrap.querySelectorAll(".line");
 		const isInstant = wrap.hasAttribute("data-instant-animation");
 
 		if (isInstant) {
 			tl = gsap.timeline();
-			if (delay) {
-				delayValue = 0.3;
-			}
+			delayValue = 0.5;
 		} else {
 			tl = gsap.timeline({
 				scrollTrigger: {
 					trigger: wrap,
-					start: "top 90%",
+					start: "top bottom",
 				},
 			});
 		}
@@ -593,36 +633,45 @@ function textMaskRevealAnimation(delay = false) {
 		tl.to(lines, {
 			y: 0,
 			stagger: 0.12,
-			duration: 0.8,
+			duration: 0.6,
 			delay: delayValue,
 			ease: "custom",
 		});
 	});
 }
 
-function textFadeInAnimation() {
-	const targets = document.querySelectorAll('[data-fade-reveal="target"]');
+function textFadeInAnimation(data) {
+	const container = data && data.next ? data.next.container : document;
+	const targets = container.querySelectorAll('[data-fade-reveal="target"]');
 	if (!targets.length) return;
 
 	targets.forEach((target) => {
-		let tl = gsap.timeline({
-			scrollTrigger: {
-				trigger: target,
-				start: "top 90%",
-			},
-		});
+		const isInstant = target.hasAttribute("data-instant-animation");
+		let tl;
+
+		if (isInstant) {
+			tl = gsap.timeline();
+		} else {
+			tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: target,
+					start: "top bottom",
+				},
+			});
+		}
 
 		tl.to(target, {
 			y: 0,
+			delay: 0.5,
 			duration: 0.8,
 			ease: "power3.out",
-		}).to(
+		});
+		tl.to(
 			target,
 			{
 				opacity: 1,
-				duration: 0.8,
-				// ease: "linear",
-				ease: "power3.inOut",
+				duration: 0.6,
+				ease: "linear",
 			},
 			"<"
 		);
@@ -640,7 +689,7 @@ function borderAnimation() {
 		let tl = gsap.timeline({
 			scrollTrigger: {
 				trigger: target,
-				start: "top 90%",
+				start: "top bottom",
 			},
 		});
 
@@ -666,7 +715,7 @@ function projectParallaxAnimation() {
 
 	parallaxImages.forEach((wrap) => {
 		const directionAttribute = wrap.getAttribute("data-project-parallax");
-		const gsapDirectionValue = directionAttribute === "down" ? "15%" : "-15%";
+		const gsapDirectionValue = directionAttribute === "down" ? "7%" : "-7%";
 		const image = wrap.querySelector("img");
 
 		let tl = gsap.timeline({
@@ -738,8 +787,10 @@ function componentVideoURL() {
 	});
 }
 
-function imageParallaxAnimation() {
-	const imageWraps = document.querySelectorAll("[data-image-parallax]");
+function imageParallaxAnimation(data) {
+	const container = data && data.next ? data.next.container : document;
+	const imageWraps = container.querySelectorAll("[data-image-parallax]");
+
 	if (!imageWraps.length) return;
 
 	imageWraps.forEach((wrap) => {
@@ -757,73 +808,37 @@ function imageParallaxAnimation() {
 		tl.to(images, {
 			top: "0%",
 			ease: "linear",
+			overwrite: true,
 		});
 	});
 }
 
-function accordionAnimation() {
-	const accordionItems = document.querySelectorAll('[data-accordion="item"]');
-	if (!accordionItems.length) return;
+// Need this in order to kill/reset scrollTriggers when filtering
+let oldParallaxImageTimelines = [];
 
-	accordionItems.forEach((item) => {
-		const trigger = item.querySelector('[data-accordion="trigger"]');
-		const expand = item.querySelector('[data-accordion="expand"]');
-		const content = item.querySelector('[data-accordion="content"]');
+function filterImageParallaxAnimation() {
+	const imageWraps = document.querySelectorAll("[data-filter-image-parallax]");
+	if (!imageWraps.length) return;
 
-		let openTl = gsap.timeline({
-			paused: true,
-			onComplete: () => {
-				ScrollTrigger.refresh();
+	imageWraps.forEach((wrap) => {
+		const images = wrap.querySelector("img");
+
+		let tl = gsap.timeline({
+			scrollTrigger: {
+				trigger: wrap,
+				start: "top bottom",
+				end: "bottom top",
+				scrub: true,
 			},
 		});
-		openTl
-			.from(expand, {
-				height: 0,
-				duration: 0.6,
-				ease: "power3.inOut",
-			})
-			.from(
-				content,
-				{
-					opacity: 0,
-					duration: 0.4,
-					ease: "linear",
-				},
-				"-=0.3"
-			);
 
-		let closeTl = gsap.timeline({
-			paused: true,
-			onComplete: () => {
-				ScrollTrigger.refresh();
-			},
+		tl.to(images, {
+			top: "0%",
+			ease: "linear",
+			overwrite: true,
 		});
-		closeTl
-			.to(expand, {
-				height: 0,
-				duration: 0.6,
-				ease: "power3.inOut",
-			})
-			.set(content, {
-				opacity: 0,
-				duration: 0.4,
-				ease: "linear",
-			});
 
-		function accordionHandler() {
-			trigger.classList.toggle("is-open");
-			const isOpen = trigger.classList.contains("is-open");
-
-			if (isOpen) {
-				closeTl.pause();
-				openTl.restart();
-			} else {
-				openTl.pause();
-				closeTl.restart();
-			}
-		}
-
-		trigger.addEventListener("click", accordionHandler);
+		oldParallaxImageTimelines.push(tl);
 	});
 }
 
@@ -831,57 +846,85 @@ function categoriesImagesHover() {
 	const categoryLinks = document.querySelectorAll("[data-category-link]");
 	if (!categoryLinks.length) return;
 
-	const images = document.querySelectorAll(`[data-category-image]`);
+	let activeCategory = {};
+	let activeTimeline = null;
 
-	let timelines = [];
-	let activeTl;
-	let activeImg;
+	function animateImage(newImage) {
+		const previousImage = activeCategory.image;
 
-	function setActiveCategory(tl) {
-		if (tl === activeTl) return;
-
-		if (activeTl) {
-			activeTl.reverse();
+		// Kill or complete any active timeline
+		if (activeTimeline && activeTimeline.isActive()) {
+			activeTimeline.progress(1); // Ensure the timeline finishes immediately
 		}
 
-		tl.play();
-		activeTl = tl;
+		// Create a new timeline for the current animation
+		activeTimeline = gsap.timeline();
+
+		if (previousImage) {
+			// Set the new image to be visible underneath the fading-out image
+			activeTimeline
+				.set(newImage, { autoAlpha: 1, zIndex: 0, scale: 1.1 }) // Make the new image visible underneath
+				.to(newImage, { scale: 1, duration: 1.5, ease: "power4.out" })
+				.to(
+					previousImage,
+					{
+						opacity: 0,
+						duration: 0.2,
+						ease: "linear",
+						onComplete: () => {
+							gsap.set(previousImage, { autoAlpha: 0, zIndex: 0 });
+						},
+					},
+					"<"
+				)
+				.set(newImage, { zIndex: 1 }); // Bring the new image to the front after fade-out
+		} else {
+			// If there's no previous image, simply set the new image as active
+			activeTimeline.set(newImage, { autoAlpha: 1, zIndex: 1 });
+		}
+
+		activeCategory.image = newImage; // Update the active image
 	}
 
-	function changeImage(image) {
-		if (activeImg) {
-			gsap.set(activeImg, {
-				opacity: 0,
+	function animateLink(newLink) {
+		// Animate the active and new links
+		if (activeCategory.link) {
+			gsap.to(activeCategory.link, {
+				opacity: 0.5,
+				duration: 0.1,
+				ease: "linear",
 			});
 		}
-		gsap.set(image, {
+
+		gsap.to(newLink, {
 			opacity: 1,
+			duration: 0.1,
+			ease: "linear",
 		});
-		activeImg = image;
+
+		activeCategory.link = newLink;
 	}
 
 	categoryLinks.forEach((link, index) => {
 		const categoryName = link.getAttribute("data-category-link");
 		const image = document.querySelector(`[data-category-image="${categoryName}"]`);
 
-		let tl = gsap.timeline({ paused: true });
+		// Initially hide all images
+		gsap.set(image, { autoAlpha: 0 });
 
-		tl.to(link, {
-			opacity: 1,
-			duration: 0.1,
-			ease: "linear",
-		});
-
-		timelines.push(tl);
-
+		// Add hover event listener
 		link.addEventListener("mouseenter", () => {
-			changeImage(image);
-			setActiveCategory(tl);
+			if (activeCategory.link !== link || activeCategory.image !== image) {
+				animateLink(link);
+				animateImage(image);
+			}
 		});
 
+		// Set the first category as active
 		if (index === 0) {
-			changeImage(image);
-			setActiveCategory(tl);
+			gsap.set(image, { zIndex: 1, autoAlpha: 1 });
+			animateLink(link);
+			animateImage(image);
 		}
 	});
 }
@@ -955,17 +998,85 @@ function hideEmptyCareerSection() {
 	}
 }
 
-function startProjectPopup() {
+function accordionAnimation() {
+	const accordionItems = document.querySelectorAll('[data-accordion="item"]');
+	if (!accordionItems.length) return;
+
+	accordionItems.forEach((item) => {
+		const trigger = item.querySelector('[data-accordion="trigger"]');
+		const expand = item.querySelector('[data-accordion="expand"]');
+		const content = item.querySelector('[data-accordion="content"]');
+
+		let openTl = gsap.timeline({
+			paused: true,
+			onComplete: () => {
+				ScrollTrigger.refresh();
+			},
+		});
+		openTl
+			.from(expand, {
+				height: 0,
+				duration: 0.6,
+				ease: "power3.inOut",
+			})
+			.from(
+				content,
+				{
+					opacity: 0,
+					duration: 0.4,
+					ease: "linear",
+				},
+				"-=0.3"
+			);
+
+		let closeTl = gsap.timeline({
+			paused: true,
+			onComplete: () => {
+				ScrollTrigger.refresh();
+			},
+		});
+		closeTl
+			.to(expand, {
+				height: 0,
+				duration: 0.6,
+				ease: "power3.inOut",
+			})
+			.set(content, {
+				opacity: 0,
+				duration: 0.4,
+				ease: "linear",
+			});
+
+		function accordionHandler() {
+			trigger.classList.toggle("is-open");
+			const isOpen = trigger.classList.contains("is-open");
+
+			if (isOpen) {
+				closeTl.pause();
+				openTl.restart();
+			} else {
+				openTl.pause();
+				closeTl.restart();
+			}
+		}
+
+		trigger.addEventListener("click", accordionHandler);
+	});
+}
+
+let openTl; // Declare a global variable for the timeline
+
+function initPersistentPopup() {
 	const popupWrap = document.querySelector('[data-project-popup="wrap"]');
-	const popupTriggers = document.querySelectorAll('[data-project-popup="trigger"]');
-	if (!popupWrap || !popupTriggers.length) return;
+	const headerTrigger = document.querySelector('[data-project-popup="trigger-header"]');
+	if (!popupWrap || !headerTrigger) return;
 
 	const popup = popupWrap.querySelector('[data-project-popup="popup"]');
 	const overlay = popupWrap.querySelector('[data-project-popup="overlay"]');
 	const popupClose = popupWrap.querySelectorAll('[data-project-popup="close"]');
 
-	// Open timeline with animation
-	let openTl = gsap.timeline({ paused: true });
+	// Create the timeline for popup animation if it doesn't exist
+	openTl = gsap.timeline({ paused: true, overwrite: true });
 	openTl
 		.set(popupWrap, {
 			display: "flex",
@@ -986,7 +1097,7 @@ function startProjectPopup() {
 			"<"
 		);
 
-	// Close action without animation
+	// Close popup action
 	const closePopup = () => {
 		lenis.start();
 		gsap.set(popupWrap, {
@@ -994,17 +1105,28 @@ function startProjectPopup() {
 		});
 	};
 
-	// Trigger the opening animation
+	// Attach event listener to header trigger
+	headerTrigger.addEventListener("click", () => {
+		lenis.stop();
+		openTl.restart();
+	});
+
+	// Attach event listeners to close buttons
+	popupClose.forEach((btn) => {
+		btn.addEventListener("click", closePopup);
+	});
+}
+
+function initPageSpecificPopupTriggers() {
+	const popupTriggers = document.querySelectorAll('[data-project-popup="trigger"]');
+	if (!popupTriggers.length || !openTl) return; // Ensure triggers exist and the timeline is defined
+
+	// Attach event listeners to page-specific triggers
 	popupTriggers.forEach((popupTrigger) => {
 		popupTrigger.addEventListener("click", () => {
 			lenis.stop();
-			openTl.restart();
+			openTl.restart(); // Reuse the persistent popup timeline
 		});
-	});
-
-	// Trigger the close action
-	popupClose.forEach((btn) => {
-		btn.addEventListener("click", closePopup);
 	});
 }
 
@@ -1102,7 +1224,7 @@ const customFormValidation = function () {
 	});
 };
 
-function projectsListHover(link) {
+function projectsListHover() {
 	const projectListLinks = document.querySelectorAll('[data-projects-list="link"]');
 	if (!projectListLinks.length) return;
 
@@ -1164,20 +1286,32 @@ function projectsListHover(link) {
 async function projectsFilters() {
 	const cmsList = document.querySelector('[fs-cmsfilter-element="list"]');
 	if (!cmsList) return;
+
 	const filtersTag = document.querySelector('[data-filters-tag="wrap"]');
 	const filtersTagName = filtersTag.querySelector('[data-filters-tag="name"]');
 	const filtersTagCounter = filtersTag.querySelector('[data-filters-tag="counter"]');
 
 	// Re-initialize CMSFilter
 	const filterInstances = await window.fsAttributes.cmsfilter.init();
+
+	// Creating parallax image animation for each project
+	filterImageParallaxAnimation();
+
 	const [filterInstance] = filterInstances;
+
+	const validItems = filterInstance.listInstance.validItems;
+	const validElements = validItems.map((item) => item.element);
+	gsap.to(validElements, {
+		opacity: 1,
+		duration: 1,
+		ease: "linear",
+		stagger: 0.2,
+	});
 
 	function toggleTag() {
 		const [filterData] = filterInstance.filtersData;
 		const filterCount = filterInstance.listInstance.validItems.length;
 		const [filterValue] = filterData.values;
-
-		console.log(filterValue);
 
 		if (!filterValue) {
 			filtersTag.classList.add("display-none");
@@ -1186,7 +1320,6 @@ async function projectsFilters() {
 			filtersTagName.textContent = filterValue;
 			// 2. Get filter count and use it inside tag
 			filtersTagCounter.textContent = filterCount;
-
 			// 3. Display tag if filters are active
 			filtersTag.classList.remove("display-none");
 		}
@@ -1197,11 +1330,43 @@ async function projectsFilters() {
 	});
 
 	filterInstance.listInstance.on("renderitems", (renderedItems) => {
+		// 1. Kill all previous ScrollTriggers and reset inline styles
+		oldParallaxImageTimelines.forEach((tl) => {
+			tl.pause(0).kill(true);
+		});
+		oldParallaxImageTimelines = []; // Clear the array
+
+		// 2. Temporarily hide new filtered items
+		renderedItems.forEach((item) => {
+			const htmlEl = item.element;
+			gsap.set(htmlEl, {
+				opacity: 0,
+				// y: 24, // Optional: slight offset for reveal animation
+			});
+		});
+
+		// 3. Reinitialize ScrollTriggers for filtered items
+		filterImageParallaxAnimation();
+
+		// 4. Smoothly reveal filtered items
+		gsap.to(
+			renderedItems.map((item) => item.element),
+			{
+				opacity: 1,
+				y: 0,
+				duration: 0.5,
+				ease: "power2.out",
+				stagger: 0.1,
+			}
+		);
+
+		// Optional: Call other relevant functions
 		toggleTag();
 		projectsListHover();
+
 		setTimeout(() => {
 			ScrollTrigger.refresh();
-		}, 510);
+		}, 50);
 	});
 }
 
@@ -1223,23 +1388,49 @@ function categoryListURLs() {
 	});
 }
 
-function initBeforeEnter() {
+function disableLogoURL() {
+	const logo = document.querySelector('[data-disable-url="logo"]');
+	if (!logo) return;
+
+	pageUrl = window.location.href;
+	logoUrl = logo.href;
+
+	if (pageUrl === logoUrl) {
+		logo.style.pointerEvents = "none";
+	} else {
+		logo.style.pointerEvents = "auto";
+	}
+}
+
+let oldScrollTriggers;
+
+function initBeforeEnter(data) {
 	// Kill all ScrollTriggers but keep inline styles
-	ScrollTrigger.getAll().forEach((trigger) => trigger.kill(false));
+	// ScrollTrigger.getAll().forEach((trigger) => trigger.kill(false));
+	oldScrollTriggers = ScrollTrigger.getAll();
+	setGSAPScroller(data);
+	projectsFilters();
+	imageParallaxAnimation(data);
+	// overlayScrollbar(data);
+	smoothScroll(data);
+	logoShrinkAnimation(data);
 	setActiveUrl();
-	splitTextIntoLines();
-	wrapLinesInMask();
-	textMaskRevealAnimation(true);
-	textFadeInAnimation();
+	splitTextIntoLines(data);
+	textMaskRevealAnimation(data);
+	wrapLinesInMask(data);
+	textFadeInAnimation(data);
 	totalProjectsCount();
 	projectCategoryCounter();
 	filtersDropdownAnimation();
+	disableLogoURL();
 }
 
 function initAfterEnter() {
+	if (oldScrollTriggers) {
+		oldScrollTriggers.forEach((trigger) => trigger.kill(false));
+	}
 	footerParallax();
 	partnersMarqueeAnimation();
-	logoShrinkAnimation();
 	customCursorAnimation();
 	borderAnimation();
 	projectParallaxAnimation();
@@ -1250,11 +1441,10 @@ function initAfterEnter() {
 	horizontalScroll();
 	changingImages();
 	hideEmptyCareerSection();
-	startProjectPopup();
 	customFormValidation();
 	projectsListHover();
 	categoryListURLs();
-	imageParallaxAnimation();
+	initPageSpecificPopupTriggers();
 	ScrollTrigger.refresh();
 }
 
@@ -1262,12 +1452,9 @@ document.addEventListener("DOMContentLoaded", () => {
 	gsap.registerPlugin(ScrollTrigger);
 	gsap.registerPlugin(CustomEase);
 	barbaJS();
-	smoothScroll();
 	colorModeToggle();
 	menuAnimation();
-	overlayScrollbar();
-	projectsFilters();
-
+	initPersistentPopup();
 	// Init on page load
 	initBeforeEnter();
 	initAfterEnter();
