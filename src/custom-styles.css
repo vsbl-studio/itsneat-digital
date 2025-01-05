@@ -3,6 +3,11 @@ html.lenis body {
 	height: auto;
 }
 
+/* For preventing flickering of initial gsap states. In JS this is set back to autoAlpha: 1 */
+body {
+	opacity: 0;
+}
+
 .lenis.lenis-smooth {
 	scroll-behavior: auto !important;
 }
@@ -17,9 +22,12 @@ html.lenis body {
 
 /* Case list */
 
-.projects_image,
-.projects_image-wrap {
+.projects_image {
 	transition: scale 0.75s cubic-bezier(0.19, 1, 0.22, 1);
+}
+
+.projects_image-wrap {
+	transition: border-radius 0.75s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
 .projects_link:hover .projects_image {
@@ -194,8 +202,69 @@ html.lenis body {
 	transform: translateY(0%);
 }
 
-/* Hide scrollbar from body */
+/* Hide scrollbars */
 
-body {
+html,
+body,
+.main-wrapper {
 	overflow: hidden;
+	-ms-overflow-style: none;
+	scrollbar-width: none;
+}
+
+body::-webkit-scrollbar,
+.main-wrapper::-webkit-scrollbar {
+	display: none;
+}
+
+/* Disable form btn text select */
+label {
+	user-select: none; /* Standard syntax */
+	-webkit-user-select: none; /* Safari */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+/* Text select BG color */
+
+/* Apply to all text on the website */
+::selection {
+	background: var(--color--bg-secondary);
+	color: var(--color--text-secondary);
+}
+
+/* For Firefox compatibility */
+::-moz-selection {
+	background: var(--color--bg-secondary);
+	color: var(--color--text-secondary);
+}
+
+/* Footer menu */
+
+.menu.is-footer .button.is-menu-trigger {
+	--brand--orange: var(--color--text-primary);
+	--brand--black: var(--color--bg-primary);
+}
+
+.menu.is-footer .menu_background {
+	--brand--orange: var(--color--bg-secondary);
+}
+
+.menu.is-footer .menu_nav-link,
+.menu.is-footer .menu_mode-icon {
+	--brand--black: var(--color--text-secondary);
+}
+
+.menu.is-footer .menu_mode-hover {
+	--color--border-primary: var(--color--border-secondary) !important;
+}
+
+/* Project view switcher */
+
+.work-switch_link.is-active {
+	/* color: var(--color--text-secondary); */
+	pointer-events: none;
+}
+
+[data-disable-switch="wrap"].is-disabled {
+	pointer-events: none;
 }

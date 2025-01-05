@@ -11,8 +11,6 @@ import "overlayscrollbars/overlayscrollbars.css";
 import { OverlayScrollbars } from "overlayscrollbars";
 
 function barbaJS() {
-	CustomEase.create("custom", "M0,0 C0.204,0 0.192,0.726 0.318,0.852 0.45,0.984 0.504,1 1,1");
-
 	// Transition in function after next container is added to DOM
 	function transitionIn(data) {
 		return new Promise((resolve) => {
@@ -121,6 +119,15 @@ function barbaJS() {
 					data.next.logoWidth = "2rem";
 				},
 			},
+			{
+				namespace: "projects-page",
+				beforeEnter(data) {
+					projectSwitcherDisplay(data);
+				},
+				afterLeave(data) {
+					projectSwitcherDisplay(data, true);
+				},
+			},
 		],
 		transitions: [
 			{
@@ -134,12 +141,14 @@ function barbaJS() {
 				},
 
 				async beforeEnter(data) {
+					resetFooterLogoMenuStyles();
 					initBeforeEnter(data);
 					await new Promise((resolve) => setTimeout(resolve, 100));
 				},
 
 				// 2. Run transition
 				async enter(data) {
+					initEnter();
 					// Awaiting to complete transitionIn before barba removes previous container
 					lenis.stop();
 					await transitionIn(data);
@@ -327,7 +336,9 @@ function menuAnimation() {
 			})
 				.to(".menu_wrap", { opacity: 0, duration: 0.1, ease: "linear" }, "<")
 				.set(button, { color: "", background: "" }, "<")
-				.set(".menu_dropdown", { display: "none" }); // Hide dropdown
+				.set(".menu_dropdown", {
+					display: "none",
+				}); // Hide dropdown
 		}
 
 		// Play the timeline
@@ -504,8 +515,11 @@ async function projectCategoryCounter() {
 	});
 }
 
-function filtersDropdownAnimation() {
-	const filters = document.querySelector('[data-filters-dropdown="filters"]');
+function filtersDropdownAnimation(data) {
+	const nextContainer = data?.next?.container;
+	const container = nextContainer ? nextContainer : document;
+
+	const filters = container.querySelector('[data-filters-dropdown="filters"]');
 	if (!filters) return;
 
 	const button = filters.querySelector('[data-filters-dropdown="button"]');
@@ -610,6 +624,7 @@ function wrapLinesInMask(data) {
 function textMaskRevealAnimation(data) {
 	const container = data && data.next ? data.next.container : document;
 	const maskWraps = container.querySelectorAll('[data-mask-reveal="wrap"]');
+
 	if (!maskWraps.length) return;
 	let delayValue = 0;
 
@@ -816,8 +831,13 @@ function imageParallaxAnimation(data) {
 // Need this in order to kill/reset scrollTriggers when filtering
 let oldParallaxImageTimelines = [];
 
-function filterImageParallaxAnimation() {
-	const imageWraps = document.querySelectorAll("[data-filter-image-parallax]");
+function filterImageParallaxAnimation(data) {
+	// Clearing this array when page changes, to avoid visible image shift when changing project view
+	oldParallaxImageTimelines = [];
+
+	const container = data && data.next ? data.next.container : document;
+
+	const imageWraps = container.querySelectorAll("[data-filter-image-parallax]");
 	if (!imageWraps.length) return;
 
 	imageWraps.forEach((wrap) => {
@@ -1224,13 +1244,59 @@ const customFormValidation = function () {
 	});
 };
 
+// Store references to ensure we can remove listeners
+let projectLinkHandlers = new Map();
 function projectsListHover() {
 	const projectListLinks = document.querySelectorAll('[data-projects-list="link"]');
 	if (!projectListLinks.length) return;
 
-	function linkHoverIn(currentLink) {
-		const image = currentLink.querySelector('[data-projects-list="image"]');
+	const floatingImageContainer = document.querySelector('[data-projects-list-floating="container"]');
 
+	function linkHoverIn(currentLink) {
+		const postName = currentLink.getAttribute("data-projects-list-post");
+		const newImageSrc = document.querySelector(`[data-projects-list-image="${postName}"]`)?.src;
+
+		if (!newImageSrc) {
+			console.error("Image source not found!");
+			return;
+		}
+
+		// Create a new image element
+		const newImage = document.createElement("img");
+		newImage.src = newImageSrc;
+		newImage.style.position = "absolute";
+		newImage.style.transform = "translateY(100%)";
+		newImage.style.left = "0";
+		newImage.style.top = "0";
+		newImage.style.width = "100%";
+		newImage.style.height = "100%";
+		newImage.style.objectFit = "cover";
+
+		// Append to container
+		floatingImageContainer.appendChild(newImage);
+
+		// Get previous image
+		const oldImage = newImage.previousElementSibling;
+
+		// Animate the new image in
+		gsap.to(newImage, {
+			y: "0%",
+			duration: 0.75,
+			ease: "custom-2",
+		});
+
+		if (oldImage) {
+			gsap.to(oldImage, {
+				y: "-50%",
+				duration: 0.75,
+				ease: "custom-2",
+				onComplete: () => {
+					oldImage.remove();
+				},
+			});
+		}
+
+		// 1. Animate content opacity
 		projectListLinks.forEach((link) => {
 			const content = link.querySelector('[data-projects-list="content"]');
 
@@ -1248,10 +1314,6 @@ function projectsListHover() {
 				});
 			}
 		});
-
-		gsap.set(image, {
-			display: "block",
-		});
 	}
 
 	function linkHoverOut(currentLink) {
@@ -1266,107 +1328,208 @@ function projectsListHover() {
 				ease: "linear",
 			});
 		});
+	}
 
-		gsap.set(image, {
-			display: "none",
-		});
+	function handleMouseEnter(event) {
+		const link = event.currentTarget;
+		linkHoverIn(link);
+	}
+
+	function handleMouseLeave(event) {
+		const link = event.currentTarget;
+		linkHoverOut(link);
 	}
 
 	projectListLinks.forEach((link) => {
-		link.addEventListener("mouseover", () => {
-			linkHoverIn(link);
-		});
+		// Remove old event listeners
+		if (projectLinkHandlers.has(link)) {
+			link.removeEventListener("mouseenter", projectLinkHandlers.get(link).handleMouseEnter);
+			link.removeEventListener("mouseleave", projectLinkHandlers.get(link).handleMouseLeave);
+		}
 
-		link.addEventListener("mouseout", () => {
-			linkHoverOut(link);
+		// Store the new handler
+		projectLinkHandlers.set(link, { handleMouseEnter, handleMouseLeave });
+
+		// Add new event listeners
+		link.addEventListener("mouseenter", handleMouseEnter);
+		link.addEventListener("mouseleave", handleMouseLeave);
+	});
+}
+
+function floatingProjectsListImage() {
+	const floatingImage = document.querySelector("[data-projects-list-floating]");
+	const floatingImageArea = document.querySelector('[data-projects-list="floating-area"]');
+
+	if (!floatingImage || !floatingImageArea) return;
+
+	const fullHeight = floatingImage.scrollHeight;
+
+	function animateIn() {
+		let tl = gsap.timeline();
+		tl.to(floatingImage, {
+			height: fullHeight,
+			duration: 0.75,
+			ease: "custom-2",
+		});
+	}
+
+	function animateOut() {
+		let tl = gsap.timeline();
+		tl.to(floatingImage, {
+			height: 0,
+			duration: 0.75,
+			ease: "custom-2",
+		});
+	}
+
+	floatingImageArea.addEventListener("mouseenter", animateIn);
+
+	floatingImageArea.addEventListener("mouseleave", animateOut);
+
+	// Mousemove Event Listener
+	window.addEventListener("mousemove", (event) => {
+		// Get mouse position relative to the floating area
+		const rect = floatingImageArea.getBoundingClientRect();
+		const mouseX = event.clientX - rect.left; // X relative to floating area
+		const mouseY = event.clientY - rect.top; // Y relative to floating area
+
+		// Calculate image center point
+		const centerX = rect.width / 2;
+		const centerY = rect.height / 2;
+
+		// Calculate offset from the center
+		const offsetX = mouseX - centerX; // Offset from center horizontally
+		const offsetY = mouseY - centerY; // Offset from center vertically
+
+		// Apply movement with GSAP
+		gsap.to(floatingImage, {
+			x: offsetX,
+			y: offsetY,
+			duration: 1, // Shorter duration for snappier follow effect
+			ease: "power2.out",
 		});
 	});
 }
 
-async function projectsFilters() {
-	const cmsList = document.querySelector('[fs-cmsfilter-element="list"]');
+async function projectsFilters(data) {
+	const nextContainer = data?.next?.container;
+	const container = nextContainer ? nextContainer : document;
+
+	const cmsList = container.querySelector('[fs-cmsfilter-element^="list"]');
 	if (!cmsList) return;
 
-	const filtersTag = document.querySelector('[data-filters-tag="wrap"]');
+	const viewSwitcherButtons = document.querySelectorAll('[data-project-view="link"]');
+
+	const filtersTag = container.querySelector('[data-filters-tag="wrap"]');
 	const filtersTagName = filtersTag.querySelector('[data-filters-tag="name"]');
 	const filtersTagCounter = filtersTag.querySelector('[data-filters-tag="counter"]');
 
 	// Re-initialize CMSFilter
-	const filterInstances = await window.fsAttributes.cmsfilter.init();
+	// NEED TO INIT ONLY THE NEW INSTANCE, NOT THE PREVIOUS ONE (try removing attributes)
+	const oldContainer = data?.current?.container;
+	if (oldContainer) {
+		const fsFilterList = oldContainer.querySelector('[fs-cmsfilter-element^="list"]');
 
-	// Creating parallax image animation for each project
-	filterImageParallaxAnimation();
-
-	const [filterInstance] = filterInstances;
-
-	const validItems = filterInstance.listInstance.validItems;
-	const validElements = validItems.map((item) => item.element);
-	gsap.to(validElements, {
-		opacity: 1,
-		duration: 1,
-		ease: "linear",
-		stagger: 0.2,
-	});
-
-	function toggleTag() {
-		const [filterData] = filterInstance.filtersData;
-		const filterCount = filterInstance.listInstance.validItems.length;
-		const [filterValue] = filterData.values;
-
-		if (!filterValue) {
-			filtersTag.classList.add("display-none");
-		} else {
-			// 1. Get active filter name and use it inside tag
-			filtersTagName.textContent = filterValue;
-			// 2. Get filter count and use it inside tag
-			filtersTagCounter.textContent = filterCount;
-			// 3. Display tag if filters are active
-			filtersTag.classList.remove("display-none");
+		if (fsFilterList) {
+			fsFilterList.removeAttribute("fs-cmsfilter-element");
+			fsFilterList.removeAttribute("fs-cmsfilter-showquery");
+			fsFilterList.removeAttribute("fs-cmsfilter-duration");
+			fsFilterList.removeAttribute("fs-cmsfilter-easing");
 		}
 	}
 
-	filtersTag.addEventListener("click", () => {
-		filterInstance.resetFilters();
-	});
+	const filterInstances = await window.fsAttributes.cmsfilter.init();
 
-	filterInstance.listInstance.on("renderitems", (renderedItems) => {
-		// 1. Kill all previous ScrollTriggers and reset inline styles
-		oldParallaxImageTimelines.forEach((tl) => {
-			tl.pause(0).kill(true);
-		});
-		oldParallaxImageTimelines = []; // Clear the array
+	filterInstances.forEach((filterInstance) => {
+		const validItems = filterInstance.listInstance.validItems;
 
-		// 2. Temporarily hide new filtered items
-		renderedItems.forEach((item) => {
-			const htmlEl = item.element;
-			gsap.set(htmlEl, {
-				opacity: 0,
-				// y: 24, // Optional: slight offset for reveal animation
-			});
+		const validElements = validItems.map((item) => item.element);
+		gsap.to(validElements, {
+			opacity: 1,
+			duration: 1,
+			ease: "linear",
+			stagger: 0.2,
 		});
 
-		// 3. Reinitialize ScrollTriggers for filtered items
-		filterImageParallaxAnimation();
+		function toggleTag() {
+			const [filterData] = filterInstance.filtersData;
+			const filterCount = filterInstance.listInstance.validItems.length;
+			const [filterValue] = filterData.values;
 
-		// 4. Smoothly reveal filtered items
-		gsap.to(
-			renderedItems.map((item) => item.element),
-			{
-				opacity: 1,
-				y: 0,
-				duration: 0.5,
-				ease: "power2.out",
-				stagger: 0.1,
+			if (!filterValue) {
+				filtersTag.classList.add("display-none");
+			} else {
+				// 1. Get active filter name and use it inside tag
+				filtersTagName.textContent = filterValue;
+				// 2. Get filter count and use it inside tag
+				filtersTagCounter.textContent = filterCount;
+				// 3. Display tag if filters are active
+				filtersTag.classList.remove("display-none");
 			}
-		);
+		}
 
-		// Optional: Call other relevant functions
-		toggleTag();
-		projectsListHover();
+		function setSwitcherBtnUrl() {
+			const urlParams = new URLSearchParams(window.location.search);
+			const paramValue = urlParams.get("category");
 
-		setTimeout(() => {
-			ScrollTrigger.refresh();
-		}, 50);
+			viewSwitcherButtons.forEach((btn) => {
+				const url = new URL(btn.href);
+
+				if (paramValue) {
+					url.searchParams.set("category", paramValue);
+				} else {
+					url.search = "";
+				}
+				btn.href = url.toString();
+			});
+		}
+
+		filtersTag.addEventListener("click", () => {
+			filterInstance.resetFilters();
+		});
+
+		filterInstance.listInstance.on("renderitems", (renderedItems) => {
+			// 1. Kill all previous ScrollTriggers and reset inline styles
+			oldParallaxImageTimelines.forEach((tl) => {
+				tl.pause(0).kill(true);
+			});
+
+			oldParallaxImageTimelines = []; // Clear the array
+
+			// 2. Temporarily hide new filtered items
+			renderedItems.forEach((item) => {
+				const htmlEl = item.element;
+				gsap.set(htmlEl, {
+					opacity: 0,
+				});
+			});
+
+			// 3. Reinitialize ScrollTriggers for filtered items
+			filterImageParallaxAnimation(data);
+
+			// 4. Smoothly reveal filtered items
+			gsap.to(
+				renderedItems.map((item) => item.element),
+				{
+					opacity: 1,
+					y: 0,
+					duration: 0.5,
+					ease: "power2.out",
+					stagger: 0.1,
+				}
+			);
+
+			// 5. Get active filter parameter for view switcher
+			setSwitcherBtnUrl();
+
+			// Optional: Call other relevant functions
+			toggleTag();
+			projectsListHover();
+
+			setTimeout(() => {
+				ScrollTrigger.refresh();
+			}, 50);
+		});
 	});
 }
 
@@ -1389,46 +1552,333 @@ function categoryListURLs() {
 }
 
 function disableLogoURL() {
-	const logo = document.querySelector('[data-disable-url="logo"]');
-	if (!logo) return;
+	const logos = document.querySelectorAll('[data-disable-url="logo"]');
+	if (!logos.length) return;
 
 	pageUrl = window.location.href;
-	logoUrl = logo.href;
 
-	if (pageUrl === logoUrl) {
-		logo.style.pointerEvents = "none";
-	} else {
-		logo.style.pointerEvents = "auto";
+	logos.forEach((logo) => {
+		logoUrl = logo.href;
+
+		if (pageUrl === logoUrl) {
+			logo.style.pointerEvents = "none";
+		} else {
+			logo.style.pointerEvents = "auto";
+		}
+	});
+}
+
+function anchorScrolls() {
+	const anchorLinks = document.querySelectorAll('a[href^="#"]:not(a[href="#"])');
+
+	if (!anchorLinks.length) return;
+
+	anchorLinks.forEach((anchor) => {
+		anchor.addEventListener("click", (e) => {
+			e.preventDefault();
+
+			// Find the closest <a> element in case of nested clicks
+			const link = e.target.closest('a[href^="#"]');
+			if (!link) return;
+
+			const href = link.getAttribute("href");
+			const target = document.querySelector(href);
+
+			if (target) {
+				// Use Lenis scrollTo method for smooth scrolling
+				lenis.scrollTo(target, {
+					duration: 1.25, // Duration of the scroll (in seconds)
+					easing: (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2),
+				});
+			}
+		});
+	});
+}
+
+function footerLogoMenu() {
+	const logo = document.querySelector('[data-fade-logo="logo"]');
+	const menu = document.querySelector('[data-footer-menu="menu"]');
+	if (!logo) return;
+
+	// return;
+	let tl = gsap.timeline({
+		scrollTrigger: {
+			trigger: "footer",
+			start: `top 15%`,
+			toggleActions: "play none none reverse",
+			toggleClass: { targets: menu, className: "is-footer" },
+		},
+	});
+
+	tl.to(logo, {
+		opacity: 0,
+		duration: 0.2,
+		ease: "linear",
+	});
+}
+
+function resetFooterLogoMenuStyles() {
+	const menu = document.querySelector('[data-footer-menu="menu"]');
+	const logo = document.querySelector('[data-fade-logo="logo"]');
+
+	if (menu) {
+		menu.classList.remove("is-footer");
+	}
+
+	if (logo) {
+		gsap.to(logo, {
+			opacity: 1,
+			duration: 0.2,
+			ease: "linear",
+		});
+	}
+}
+
+// Store references to ensure we can remove listeners
+let modeLinkHandlers = new Map();
+let activeLink;
+
+function projectViewSwitcherAnimation() {
+	const modeLinks = document.querySelectorAll('[data-project-view="link"]');
+	if (!modeLinks.length) return;
+
+	const navBlob = document.querySelector('[data-project-view="blob"]');
+
+	const currentUrl = window.location.origin + window.location.pathname;
+
+	function getLinkInfo(link) {
+		return {
+			width: link.offsetWidth,
+			leftPosition: link.offsetLeft,
+		};
+	}
+
+	function moveBlob(link) {
+		const { width, leftPosition } = getLinkInfo(link);
+
+		gsap.to(navBlob, {
+			width: width,
+			left: leftPosition,
+			duration: 0.4,
+			ease: "power1.out",
+		});
+	}
+
+	function setActiveStyle(link) {
+		// 1. Remove active style from previous
+		if (activeLink) {
+			activeLink.classList.remove("is-active");
+			gsap.to(activeLink, {
+				color: "var(--color--text-primary)",
+				duration: 0.3,
+				ease: "linear",
+			});
+		}
+
+		// 2. Add style to new
+		link.classList.add("is-active");
+		gsap.to(link, {
+			color: "var(--color--text-secondary)",
+			duration: 0.5,
+			ease: "linear",
+		});
+
+		// 3. Set activeLink to new
+		activeLink = link;
+	}
+
+	function setActiveBtn(link) {
+		moveBlob(link);
+		setActiveStyle(link);
+	}
+
+	modeLinks.forEach((link) => {
+		const linkUrl = link.href;
+		// Set active button on initial load
+		if (linkUrl === currentUrl) {
+			setActiveBtn(link);
+		}
+
+		// Remove existing listener if any
+		if (modeLinkHandlers.has(link)) {
+			link.removeEventListener("click", modeLinkHandlers.get(link));
+		}
+
+		// Define the event handler
+		const clickHandler = () => {
+			if (barba.transitions.isRunning) return;
+			setActiveBtn(link);
+		};
+
+		// Store the handler and add the event listener
+		modeLinkHandlers.set(link, clickHandler);
+		link.addEventListener("click", clickHandler);
+	});
+}
+
+function projectSwitcherDisplay(data, leave = false) {
+	const projectViewSwitch = document.querySelector('[data-display-switcher="switcher"]');
+	if (!projectViewSwitch) return;
+
+	const prevNamespace = data.current.namespace;
+	const nextNamespace = data.next.namespace;
+
+	function showSwitcher() {
+		let tl = gsap.timeline();
+		tl.set(projectViewSwitch, {
+			display: "flex",
+		});
+		tl.to(projectViewSwitch, {
+			opacity: 1,
+			duration: 0.5,
+		});
+	}
+
+	function hideSwitcher() {
+		let tl = gsap.timeline();
+		tl.to(projectViewSwitch, {
+			opacity: 0,
+			duration: 0.5,
+		});
+		tl.set(projectViewSwitch, {
+			display: "none",
+		});
+	}
+
+	if (!leave && nextNamespace !== prevNamespace) {
+		showSwitcher();
+	}
+
+	if (leave && nextNamespace !== prevNamespace) {
+		hideSwitcher();
+	}
+}
+
+function homePageLoader() {
+	const hasLoaderRun = sessionStorage.getItem("homePageLoaderRun");
+	const heroSection = document.querySelector('[data-index-loader="hero-section"]');
+
+	if (heroSection && !hasLoaderRun) {
+		// Title animation variables
+		const titleWrap = heroSection.querySelector('[data-index-loader="title-wrap"]');
+		const titleLines = titleWrap.querySelectorAll(".home-loader_line");
+		// Getting initial words for animation
+		const initialWords = gsap.utils.toArray(heroSection.querySelectorAll('[data-index-loader="initial-word"]'));
+
+		// Subheading animation variables
+		const subheadingWrap = heroSection.querySelector('[data-index-loader="subheading-wrap"]');
+		const subheadingLines = subheadingWrap.querySelectorAll(".line");
+
+		// Fade in elements
+		const fadeInElements = document.querySelectorAll('[data-index-loader="fade"]');
+
+		// Creating master timeline
+		const masterTl = gsap.timeline({
+			onStart: () => {
+				lenis.stop();
+			},
+			onComplete: () => {
+				heroSection.remove();
+			},
+		});
+		const linesTl = gsap.timeline();
+		const subheadingTl = gsap.timeline();
+
+		masterTl.set(heroSection, {
+			autoAlpha: 1,
+		});
+
+		masterTl.from(initialWords, {
+			y: "100%",
+			stagger: 0.5,
+			duration: 2,
+			ease: "custom",
+		});
+
+		titleLines.forEach((line, index) => {
+			const lineElements = line.querySelectorAll(".heading-style-h1:not(.is-initial), .home-hero_icon");
+
+			if (!lineElements.length) return;
+			linesTl.from(
+				lineElements,
+				{
+					y: "100%",
+					duration: 2,
+					ease: "custom",
+				},
+				index * 0.12
+			);
+		});
+
+		masterTl.add(linesTl, "-=0.6");
+
+		masterTl.to(
+			subheadingLines,
+			{
+				y: 0,
+				stagger: 0.12,
+				duration: 1.8,
+				ease: "custom",
+			},
+			"<"
+		);
+
+		masterTl.from(
+			fadeInElements,
+			{
+				opacity: 0,
+				duration: 0.8,
+				ease: "linear",
+			},
+			"<+0.4"
+		);
+
+		masterTl.add(() => {
+			lenis.start();
+		}, "<");
+
+		// Set the session flag to prevent rerunning
+		sessionStorage.setItem("homePageLoaderRun", "true");
 	}
 }
 
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
-	// Kill all ScrollTriggers but keep inline styles
-	// ScrollTrigger.getAll().forEach((trigger) => trigger.kill(false));
 	oldScrollTriggers = ScrollTrigger.getAll();
+
+	projectsListHover();
+	floatingProjectsListImage();
 	setGSAPScroller(data);
-	projectsFilters();
 	imageParallaxAnimation(data);
+	filterImageParallaxAnimation(data);
+	projectsFilters(data);
 	// overlayScrollbar(data);
 	smoothScroll(data);
 	logoShrinkAnimation(data);
 	setActiveUrl();
-	splitTextIntoLines(data);
-	textMaskRevealAnimation(data);
-	wrapLinesInMask(data);
-	textFadeInAnimation(data);
 	totalProjectsCount();
 	projectCategoryCounter();
-	filtersDropdownAnimation();
+	filtersDropdownAnimation(data);
 	disableLogoURL();
+	splitTextIntoLines(data);
+	wrapLinesInMask(data);
+	textMaskRevealAnimation(data);
+	textFadeInAnimation(data);
+	homePageLoader();
+}
+
+function initEnter() {
+	document.fonts.ready.then(() => {
+		projectViewSwitcherAnimation();
+	});
 }
 
 function initAfterEnter() {
 	if (oldScrollTriggers) {
 		oldScrollTriggers.forEach((trigger) => trigger.kill(false));
 	}
+
 	footerParallax();
 	partnersMarqueeAnimation();
 	customCursorAnimation();
@@ -1442,20 +1892,30 @@ function initAfterEnter() {
 	changingImages();
 	hideEmptyCareerSection();
 	customFormValidation();
-	projectsListHover();
 	categoryListURLs();
 	initPageSpecificPopupTriggers();
+	anchorScrolls();
+	footerLogoMenu();
+
 	ScrollTrigger.refresh();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
 	gsap.registerPlugin(ScrollTrigger);
 	gsap.registerPlugin(CustomEase);
+	CustomEase.create("custom", "M0,0 C0.204,0 0.192,0.726 0.318,0.852 0.45,0.984 0.504,1 1,1");
+	CustomEase.create("custom-2", "M0,0 C0.204,0 0.192,0.6 0.35,0.75 0.5,0.9 0.7,0.98 1,1");
+
+	// Set opacity from 0 - this prevents flickering of other animations
+	gsap.set("body", {
+		autoAlpha: 1,
+	});
 	barbaJS();
 	colorModeToggle();
 	menuAnimation();
 	initPersistentPopup();
 	// Init on page load
 	initBeforeEnter();
+	initEnter();
 	initAfterEnter();
 });
