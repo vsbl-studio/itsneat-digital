@@ -43,6 +43,18 @@ body {
 	display: none;
 }
 
+@media only screen and (min-width: 992px) {
+	.button.is-filter.is-open .icon-1x1-xsmall {
+		transform: rotate(90deg);
+	}
+}
+
+@media only screen and (max-width: 991px) {
+	.button.is-filter.is-open .work-projects_filter-icon-horizontal-line {
+		display: none;
+	}
+}
+
 .work-projects_tag_icon {
 	transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
 }
@@ -83,7 +95,6 @@ body {
 
 [data-fade-reveal="target"] {
 	opacity: 0;
-	transform: translateY(24px);
 }
 
 /* Border reveal animation */
@@ -92,6 +103,11 @@ body {
 	transform: scaleX(0);
 	transform-origin: center;
 }
+
+.horizontal-divider.is-left {
+	transform-origin: left;
+}
+
 .vertical-divider {
 	transform: scaleY(0);
 	transform-origin: center;
@@ -102,15 +118,24 @@ body {
 	display: none;
 }
 
-/* Accordiong */
-.services-list_accordion_trigger.is-open .services-list_accordion_icon-line:not(.is-vertical),
-.faq_accordion_trigger.is-open .faq_accordion_icon-line:not(.is-vertical) {
-	display: none;
+/* Accordion */
+@media only screen and (min-width: 992px) {
+	.services-list_accordion_trigger.is-open .services-list_accordion_icon-line:not(.is-vertical),
+	.faq_accordion_trigger.is-open .faq_accordion_icon-line:not(.is-vertical) {
+		display: none;
+	}
+
+	.services-list_accordion_trigger.is-open .services-list_accordion_icon,
+	.faq_accordion_trigger.is-open .faq_accordion_icon {
+		transform: rotate(90deg);
+	}
 }
 
-.services-list_accordion_trigger.is-open .services-list_accordion_icon,
-.faq_accordion_trigger.is-open .faq_accordion_icon {
-	transform: rotate(90deg);
+@media only screen and (max-width: 991px) {
+	.services-list_accordion_trigger.is-open .services-list_accordion_icon-line.is-vertical,
+	.faq_accordion_trigger.is-open .faq_accordion_icon-line.is-vertical {
+		display: none;
+	}
 }
 
 /* MASK btns with rotating arrow */
@@ -121,11 +146,13 @@ body {
 	transition: transform 1s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.work-projects_more-link:hover .work-projects_more-icon,
-.services-list_accordion_trigger:hover .services-list_accordion_icon,
-.faq_accordion_trigger:hover .faq_accordion_icon,
-.form_close-btn:hover .form_close-icon {
-	transform: rotate(90deg);
+@media only screen and (min-width: 992px) {
+	.work-projects_more-link:hover .work-projects_more-icon,
+	.services-list_accordion_trigger:hover .services-list_accordion_icon,
+	.faq_accordion_trigger:hover .faq_accordion_icon,
+	.form_close-btn:hover .form_close-icon {
+		transform: rotate(90deg);
+	}
 }
 
 /* Project form */
@@ -213,7 +240,8 @@ body,
 }
 
 body::-webkit-scrollbar,
-.main-wrapper::-webkit-scrollbar {
+.main-wrapper::-webkit-scrollbar,
+.horizontal-scroll_frame::-webkit-scrollbar {
 	display: none;
 }
 
@@ -267,4 +295,11 @@ label {
 
 [data-disable-switch="wrap"].is-disabled {
 	pointer-events: none;
+}
+
+/* Menu Dropdown */
+@media only screen and (max-width: 991px) {
+	[data-menu-animation="button"].is-open .menu_button-horizontal-line {
+		display: none;
+	}
 }

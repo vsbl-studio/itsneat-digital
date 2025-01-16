@@ -31,51 +31,20 @@ function barbaJS() {
 
 			// On desktop logo shrinks on case-inner
 			// On mobile logo grows on index
-			let mm = gsap.matchMedia();
 
-			// Desktop logo sizing
-			mm.add("(min-width: 992px)", () => {
-				const targetLogoWidth = data.next.logoWidth || "20rem";
-				gsap.to(
-					logo,
-					{
-						width: targetLogoWidth,
-						duration: 0.8,
-						ease: "power2.inOut",
+			const targetLogoWidth = data.next.logoWidth || "20rem";
+			gsap.to(
+				logo,
+				{
+					width: targetLogoWidth,
+					duration: 0.8,
+					ease: "power2.inOut",
+					onComplete: () => {
+						lenis.start();
 					},
-					"<"
-				);
-			});
-
-			// Mobile logo sizing
-			mm.add("(max-width: 991px)", () => {
-				console.log(data);
-				console.log(data.next.mobileLogoWidth);
-				const targetLogoWidth = data.next.mobileLogoWidth || "2rem";
-				gsap.to(
-					logo,
-					{
-						width: targetLogoWidth,
-						duration: 0.8,
-						ease: "power2.inOut",
-					},
-					"<"
-				);
-			});
-
-			// const targetLogoWidth = data.next.logoWidth || "20rem";
-			// gsap.to(
-			// 	logo,
-			// 	{
-			// 		width: targetLogoWidth,
-			// 		duration: 0.8,
-			// 		ease: "power2.inOut",
-			// 		onComplete: () => {
-			// 			lenis.start();
-			// 		},
-			// 	},
-			// 	"<"
-			// );
+				},
+				"<"
+			);
 
 			let tl = gsap.timeline({
 				onComplete: () => {
@@ -161,12 +130,6 @@ function barbaJS() {
 				},
 			},
 			{
-				namespace: "mobile-index-logo",
-				beforeEnter(data) {
-					data.next.mobileLogoWidth = "10rem";
-				},
-			},
-			{
 				namespace: "projects-page",
 				beforeEnter(data) {
 					projectSwitcherDisplay(data);
@@ -198,9 +161,6 @@ function barbaJS() {
 					initEnter();
 					// Awaiting to complete transitionAnimation before barba removes previous container
 					lenis.stop();
-					setTimeout(() => {
-						lenis.start();
-					}, 800);
 					await transitionAnimation(data);
 					oldLenis.destroy();
 				},
