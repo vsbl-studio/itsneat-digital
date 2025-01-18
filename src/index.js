@@ -1,4 +1,5 @@
 import "./custom-styles.css";
+import "./cookie-styles.css";
 import barba from "@barba/core";
 import Lenis from "lenis";
 import { gsap } from "gsap";
@@ -6,9 +7,6 @@ import { CustomEase } from "gsap/CustomEase";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import SplitType from "split-type";
 import PostDataFetcher from "./utils/PostDataFetcher";
-// Overlay scrollbar
-import "overlayscrollbars/overlayscrollbars.css";
-import { OverlayScrollbars } from "overlayscrollbars";
 // core version + navigation, pagination modules:
 import Swiper from "swiper";
 // import Swiper and modules styles
@@ -35,7 +33,7 @@ function barbaJS() {
 
 			// Desktop logo sizing
 			mm.add("(min-width: 992px)", () => {
-				const targetLogoWidth = data.next.logoWidth || "20rem";
+				const targetLogoWidth = data.next.desktopLogoWidth || "20rem";
 				gsap.to(
 					logo,
 					{
@@ -49,8 +47,6 @@ function barbaJS() {
 
 			// Mobile logo sizing
 			mm.add("(max-width: 991px)", () => {
-				console.log(data);
-				console.log(data.next.mobileLogoWidth);
 				const targetLogoWidth = data.next.mobileLogoWidth || "2rem";
 				gsap.to(
 					logo,
@@ -62,20 +58,6 @@ function barbaJS() {
 					"<"
 				);
 			});
-
-			// const targetLogoWidth = data.next.logoWidth || "20rem";
-			// gsap.to(
-			// 	logo,
-			// 	{
-			// 		width: targetLogoWidth,
-			// 		duration: 0.8,
-			// 		ease: "power2.inOut",
-			// 		onComplete: () => {
-			// 			lenis.start();
-			// 		},
-			// 	},
-			// 	"<"
-			// );
 
 			let tl = gsap.timeline({
 				onComplete: () => {
@@ -152,16 +134,15 @@ function barbaJS() {
 	barba.init({
 		preventRunning: true,
 		prevent: ({ el }) => el.hasAttribute("data-barba-prevent"),
-		debug: true,
 		views: [
 			{
-				namespace: "small-logo",
+				namespace: "desktop-small-logo",
 				beforeEnter(data) {
-					data.next.logoWidth = "2rem";
+					data.next.desktopLogoWidth = "2rem";
 				},
 			},
 			{
-				namespace: "mobile-index-logo",
+				namespace: "mobile-large-logo",
 				beforeEnter(data) {
 					data.next.mobileLogoWidth = "10rem";
 				},
@@ -235,7 +216,8 @@ function smoothScroll(data) {
 		lerp: 0.1,
 		wrapper: wrapper,
 		content: content,
-		eventsTarget: window,
+		eventsTarget: wrapper,
+		// eventsTarget: window,
 	});
 
 	lenis.on("scroll", ScrollTrigger.update);
@@ -245,16 +227,6 @@ function smoothScroll(data) {
 	});
 
 	gsap.ticker.lagSmoothing(0);
-}
-
-// Global overlay instance
-let osInstance;
-let oldOsInstance;
-function overlayScrollbar(data) {
-	const nextContainer = data?.next?.container;
-	const container = nextContainer ? nextContainer : document.querySelector(".main-wrapper");
-	// Simple initialization with an element
-	osInstance = OverlayScrollbars(container, {});
 }
 
 function setActiveUrl() {
@@ -343,9 +315,6 @@ function menuAnimation() {
 	const button = menu.querySelector('[data-menu-animation="button"]');
 	const menuLinks = menu.querySelectorAll("[data-menu-link]");
 
-	// Detect if the device is touch-based
-	const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
 	let menuOpen = false;
 	let tl = gsap.timeline({ paused: true }); // Persistent timeline
 
@@ -412,32 +381,37 @@ function menuAnimation() {
 		});
 	});
 
-	// Event listeners for hover interactions
-	menu.addEventListener("pointerenter", (event) => {
-		if (!isTouchDevice || event.pointerType === "mouse") {
-			animateDropdown(true);
-		}
-	});
-	// menu.addEventListener("mouseenter", () => {
-	// 	animateDropdown(true); // Expand if not already expanded or reversing
-	// });
+	// Use gsap.matchMedia() for responsive behaviors
+	const mm = gsap.matchMedia();
 
-	menu.addEventListener("pointerleave", (event) => {
-		if (!isTouchDevice || event.pointerType === "mouse") {
-			animateDropdown(false);
+	mm.add(
+		{
+			// Define a desktop media query
+			isDesktop: "(min-width: 992px)",
+		},
+		() => {
+			// Desktop-specific event listeners
+			menu.addEventListener("mouseenter", () => {
+				animateDropdown(true);
+			});
+
+			menu.addEventListener("mouseleave", () => {
+				animateDropdown(false);
+			});
+
+			// Cleanup function for when the media query no longer matches
+			return () => {
+				menu.removeEventListener("mouseenter", animateDropdown);
+				menu.removeEventListener("mouseleave", animateDropdown);
+			};
 		}
-	});
-	// menu.addEventListener("mouseleave", () => {
-	// 	animateDropdown(false); // Contract if expanded or reversing
-	// });
+	);
 
 	button.addEventListener("click", () => {
-		if (isTouchDevice) {
-			if (!menuOpen) {
-				animateDropdown(true);
-			} else {
-				animateDropdown(false);
-			}
+		if (!menuOpen) {
+			animateDropdown(true);
+		} else {
+			animateDropdown(false);
 		}
 	});
 
@@ -613,8 +587,6 @@ function filtersDropdownAnimation(data) {
 	const button = filters.querySelector('[data-filters-dropdown="button"]');
 	const dropdown = filters.querySelector('[data-filters-dropdown="dropdown"]');
 	const filtersBtns = filters.querySelectorAll('[data-filters-dropdown="filter"]');
-	// Detect if the device is touch-based
-	const isTouchDevice = "ontouchstart" in window || navigator.maxTouchPoints > 0;
 
 	let menuOpen = false;
 	let tl = gsap.timeline({ paused: true }); // Persistent timeline
@@ -680,26 +652,37 @@ function filtersDropdownAnimation(data) {
 		});
 	});
 
-	// Event listeners for hover interactions
-	filters.addEventListener("pointerenter", (event) => {
-		if (!isTouchDevice || event.pointerType === "mouse") {
-			animateDropdown(true); // Open the dropdown
-		}
-	});
+	// Use gsap.matchMedia() for responsive behaviors
+	const mm = gsap.matchMedia();
 
-	filters.addEventListener("pointerleave", (event) => {
-		if (!isTouchDevice || event.pointerType === "mouse") {
-			animateDropdown(false); // Close the dropdown
+	mm.add(
+		{
+			// Define a desktop media query
+			isDesktop: "(min-width: 992px)",
+		},
+		() => {
+			// Desktop-specific event listeners
+			filters.addEventListener("mouseenter", () => {
+				animateDropdown(true);
+			});
+
+			filters.addEventListener("mouseleave", () => {
+				animateDropdown(false);
+			});
+
+			// Cleanup function for when the media query no longer matches
+			return () => {
+				filters.removeEventListener("mouseenter", animateDropdown);
+				filters.removeEventListener("mouseleave", animateDropdown);
+			};
 		}
-	});
+	);
 
 	button.addEventListener("click", () => {
-		if (isTouchDevice) {
-			if (!menuOpen) {
-				animateDropdown(true);
-			} else {
-				animateDropdown(false);
-			}
+		if (!menuOpen) {
+			animateDropdown(true);
+		} else {
+			animateDropdown(false);
 		}
 	});
 
@@ -744,7 +727,6 @@ function textMaskRevealAnimation(data) {
 	const maskWraps = container.querySelectorAll('[data-mask-reveal="wrap"]');
 
 	if (!maskWraps.length) return;
-	let delayValue = 0;
 
 	maskWraps.forEach((wrap) => {
 		let tl;
@@ -761,7 +743,6 @@ function textMaskRevealAnimation(data) {
 			y: 0,
 			stagger: 0.12,
 			duration: 0.6,
-			delay: delayValue,
 			ease: "custom",
 		});
 	});
@@ -2040,6 +2021,46 @@ function servicesMobileSwiper() {
 	});
 }
 
+function cookieYesStyles() {
+	function changeCloseIcon(cookiePopup) {
+		const closeBtns = document.querySelectorAll(".cky-banner-btn-close, .cky-btn-close");
+		console.log(closeBtns);
+
+		closeBtns.forEach((closeBtn) => {
+			const closeBtnImg = closeBtn.querySelector("img");
+			closeBtnImg.remove();
+			const iconWrap = document.createElement("div");
+			iconWrap.innerHTML = `<svg width="100%" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+	<path d="M1 10.7959L11 1.00013" stroke="currentColor"/>
+	<path d="M1 1.2041L11 10.9999" stroke="currentColor"/>
+	</svg>
+	`;
+			closeBtn.appendChild(iconWrap);
+		});
+	}
+
+	function applyCustomCode(cookiePopup) {
+		changeCloseIcon(cookiePopup);
+	}
+
+	// Mutation observer to wait for cookieYes banner to load
+	const observer = new MutationObserver((mutationsList, observer) => {
+		for (const mutation of mutationsList) {
+			if (mutation.type === "childList") {
+				const cookiePopup = document.querySelector(".cky-consent-container");
+				// Check if the cookie banner is now in the DOM
+				if (cookiePopup) {
+					applyCustomCode(cookiePopup);
+					observer.disconnect(); // Stop observing once the banner is found
+					break;
+				}
+			}
+		}
+	});
+
+	observer.observe(document.body, { childList: true, subtree: true });
+}
+
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
@@ -2051,7 +2072,6 @@ function initBeforeEnter(data) {
 	imageParallaxAnimation(data);
 	filterImageParallaxAnimation(data);
 	projectsFilters(data);
-	// overlayScrollbar(data);
 	smoothScroll(data);
 	logoShrinkAnimation(data);
 	setActiveUrl();
@@ -2065,7 +2085,7 @@ function initBeforeEnter(data) {
 		textMaskRevealAnimation(data);
 		borderAnimation(data);
 		textFadeInAnimation(data);
-	}, 600);
+	}, 400);
 	homePageLoader();
 }
 
@@ -2117,6 +2137,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	colorModeToggle();
 	menuAnimation();
 	initPersistentPopup();
+	cookieYesStyles();
 	// Init on page load
 	initBeforeEnter();
 	initEnter();
