@@ -30,12 +30,14 @@ body {
 	transition: border-radius 0.75s cubic-bezier(0.19, 1, 0.22, 1);
 }
 
-.projects_link:hover .projects_image {
-	scale: 1.1;
-}
+@media (hover: hover) {
+	.projects_link:hover .projects_image {
+		scale: 1.05;
+	}
 
-.projects_link:hover .projects_image-wrap {
-	border-radius: 1rem;
+	.projects_link:hover .projects_image-wrap {
+		border-radius: 1rem;
+	}
 }
 
 /* Project filters */
@@ -162,14 +164,16 @@ body {
 	color: var(--color--text-primary);
 }
 
-.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(1),
-.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(1) {
-	transform: translateY(-100%);
-}
+@media (hover: hover) {
+	.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(1),
+	.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(1) {
+		transform: translateY(-100%);
+	}
 
-.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(2),
-.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(2) {
-	transform: translateY(0%);
+	.form_checkbox-field:has(.form_checkbox-input:checked) .mask-wrap > :nth-child(2),
+	.form_select-field:has(.w-form-formradioinput:checked) .mask-wrap > :nth-child(2) {
+		transform: translateY(0%);
+	}
 }
 
 .form_privacy-field:has(input[type="checkbox"]:checked) .form_checkmark {
@@ -201,11 +205,17 @@ body {
 }
 
 /* Color mode switch */
-.menu_mode-hover {
-	transition: opacity 0.2s ease;
+@media (hover: hover) {
+	.menu_mode-switch:hover .menu_mode-half {
+		transform: translateX(50%);
+	}
+	.menu_mode-switch.is-dark-mode:hover .menu_mode-half {
+		transform: translateX(-50%);
+	}
 }
-.menu_mode-switch:hover .menu_mode-hover {
-	opacity: 1;
+
+.menu_mode-switch.is-dark-mode .menu_mode-half {
+	transform: translateX(50%);
 }
 
 /* Menu link */
@@ -277,12 +287,12 @@ label {
 }
 
 .menu.is-footer .menu_nav-link,
-.menu.is-footer .menu_mode-icon {
+.menu.is-footer .menu_mode-half {
 	--brand--black: var(--color--text-secondary);
 }
 
-.menu.is-footer .menu_mode-hover {
-	--color--border-primary: var(--color--border-secondary) !important;
+.menu.is-footer .menu_mode-switch {
+	--brand--black: var(--color--border-secondary) !important;
 }
 
 /* Project view switcher */
