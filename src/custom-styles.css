@@ -315,11 +315,11 @@ label {
 
 /* Lottie */
 /* Default light mode */
-[data-theme="light"] .home-hero_icon svg {
+[data-theme="light"] .title_icon svg {
 	filter: none;
 }
 
 /* Dark mode */
-[data-theme="dark"] .home-hero_icon svg {
+[data-theme="dark"] .title_icon svg {
 	filter: invert(1);
 }
