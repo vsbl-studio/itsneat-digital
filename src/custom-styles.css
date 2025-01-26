@@ -312,3 +312,14 @@ label {
 		display: none;
 	}
 }
+
+/* Lottie */
+/* Default light mode */
+[data-theme="light"] .home-hero_icon svg {
+	filter: none;
+}
+
+/* Dark mode */
+[data-theme="dark"] .home-hero_icon svg {
+	filter: invert(1);
+}

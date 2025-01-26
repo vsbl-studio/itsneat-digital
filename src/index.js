@@ -268,11 +268,15 @@ function colorModeToggle() {
 	}
 
 	function changeMode(targetMode) {
+		const htmlElement = document.documentElement;
+
 		if (targetMode === "light") {
+			htmlElement.setAttribute("data-theme", "light"); // Add light theme
 			changeColors(lightColors);
 			localStorage.setItem("dark-mode", false);
 			toggleBtn.classList.remove("is-dark-mode");
 		} else {
+			htmlElement.setAttribute("data-theme", "dark"); // Add dark theme
 			changeColors(darkColors);
 			localStorage.setItem("dark-mode", true);
 			toggleBtn.classList.add("is-dark-mode");
@@ -1949,7 +1953,7 @@ function homePageLoader() {
 				);
 			});
 
-			masterTl.add(linesTl, "-=1.9");
+			masterTl.add(linesTl, "-=1.7");
 		});
 
 		masterTl.to(
