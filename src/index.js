@@ -1230,7 +1230,7 @@ function initPersistentPopup() {
 	openTl = gsap.timeline({ paused: true, overwrite: true });
 	openTl
 		.set(popupWrap, {
-			display: "flex",
+			display: "block",
 		})
 		.from(overlay, {
 			opacity: 0,
