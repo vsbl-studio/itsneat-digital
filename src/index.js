@@ -2084,7 +2084,6 @@ function cookieYesStyles() {
 function loadWebflowLottie() {
 	// Reinitialize Webflow's Lottie animations'
 	const lottie = Webflow.require("lottie");
-	console.log(lottie);
 	if (lottie) {
 		lottie.init();
 	}
