@@ -274,12 +274,10 @@ function colorModeToggle() {
 			htmlElement.setAttribute("data-theme", "light"); // Add light theme
 			changeColors(lightColors);
 			localStorage.setItem("dark-mode", false);
-			toggleBtn.classList.remove("is-dark-mode");
 		} else {
 			htmlElement.setAttribute("data-theme", "dark"); // Add dark theme
 			changeColors(darkColors);
 			localStorage.setItem("dark-mode", true);
-			toggleBtn.classList.add("is-dark-mode");
 		}
 	}
 

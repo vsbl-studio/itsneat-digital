@@ -205,16 +205,8 @@ body {
 }
 
 /* Color mode switch */
-@media (hover: hover) {
-	.menu_mode-switch:hover .menu_mode-half {
-		transform: translateX(50%);
-	}
-	.menu_mode-switch.is-dark-mode:hover .menu_mode-half {
-		transform: translateX(-50%);
-	}
-}
 
-.menu_mode-switch.is-dark-mode .menu_mode-half {
+[data-theme="dark"] .menu_mode-half {
 	transform: translateX(50%);
 }
 
@@ -315,11 +307,15 @@ label {
 
 /* Lottie */
 /* Default light mode */
-[data-theme="light"] .title_icon svg {
-	filter: none;
+.mask-wrap .title_icon {
+	transition: filter 0.5s ease; /* Smoothly transition the filter property */
+}
+
+[data-theme="light"] .title_icon {
+	filter: invert(0);
 }
 
 /* Dark mode */
-[data-theme="dark"] .title_icon svg {
+[data-theme="dark"] .title_icon {
 	filter: invert(1);
 }
