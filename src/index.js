@@ -2081,6 +2081,15 @@ function cookieYesStyles() {
 	observer.observe(document.body, { childList: true, subtree: true });
 }
 
+function loadWebflowLottie() {
+	// Reinitialize Webflow's Lottie animations'
+	const lottie = Webflow.require("lottie");
+	console.log(lottie);
+	if (lottie) {
+		lottie.init();
+	}
+}
+
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
@@ -2102,10 +2111,11 @@ function initBeforeEnter(data) {
 	splitTextIntoLines(data);
 	wrapLinesInMask(data);
 	setTimeout(() => {
+		loadWebflowLottie();
 		textMaskRevealAnimation(data);
 		borderAnimation(data);
 		textFadeInAnimation(data);
-	}, 400);
+	}, 500);
 	homePageLoader();
 }
 
