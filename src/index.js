@@ -2059,8 +2059,14 @@ function cookieYesStyles() {
 		});
 	}
 
+	function enableOverflowScroll() {
+		const overflowContainer = document.querySelector(".cky-preference-body-wrapper");
+		overflowContainer.setAttribute("data-lenis-prevent", "");
+	}
+
 	function applyCustomCode(cookiePopup) {
 		changeCloseIcon(cookiePopup);
+		enableOverflowScroll();
 	}
 
 	// Mutation observer to wait for cookieYes banner to load
