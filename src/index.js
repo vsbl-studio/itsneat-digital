@@ -1937,7 +1937,7 @@ function homePageLoader() {
 			);
 
 			titleLines.forEach((line, index) => {
-				const lineElements = line.querySelectorAll(".heading-style-h1:not(.is-initial), .home-hero_icon");
+				const lineElements = line.querySelectorAll(".heading-style-h1:not(.is-initial), .title_icon");
 
 				if (!lineElements.length) return;
 				linesTl.from(

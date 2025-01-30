@@ -2,6 +2,15 @@
 	padding: 1.875rem !important;
 }
 
+.cky-consent-container {
+	width: 30rem !important;
+}
+
+.cky-box-bottom-left {
+	bottom: 2rem !important;
+	left: 2rem !important;
+}
+
 .cky-consent-container .cky-consent-bar,
 .cky-preference-center,
 .cky-modal {
@@ -69,8 +78,8 @@
 .cky-modal {
 	box-shadow: none !important;
 	border: 1px solid var(--color--border-primary) !important;
-	right: 2rem !important;
-	left: auto !important;
+	left: 2rem !important;
+	right: auto !important;
 	top: auto !important;
 	bottom: 2rem !important;
 	transform: translate(0%, 100%) !important;
@@ -83,6 +92,7 @@
 
 .cky-modal.cky-modal-open {
 	transform: translate(0%, 0%) !important;
+	max-height: 90vh !important;
 }
 
 .cky-preference-header {
@@ -225,6 +235,11 @@
 @media only screen and (max-width: 767px) {
 	.cky-consent-container .cky-consent-bar {
 		padding: 1.25rem !important;
+	}
+
+	.cky-box-bottom-left {
+		bottom: 1.25rem !important;
+		left: 1.25rem !important;
 	}
 
 	.cky-notice-btn-wrapper {
