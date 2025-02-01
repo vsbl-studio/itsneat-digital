@@ -762,9 +762,9 @@ function textMaskRevealAnimation(data) {
 
 		tl.to(lines, {
 			y: 0,
-			stagger: 0.12,
+			stagger: 0.14,
 			duration: 0.6,
-			ease: "custom",
+			ease: "custom-3",
 		});
 	});
 }
@@ -1929,9 +1929,9 @@ function homePageLoader() {
 				initialWords,
 				{
 					y: "100%",
-					stagger: 0.12,
-					duration: 2,
-					ease: "custom",
+					stagger: 0.14,
+					duration: 1.6,
+					ease: "custom-3",
 				},
 				"<"
 			);
@@ -1944,23 +1944,23 @@ function homePageLoader() {
 					lineElements,
 					{
 						y: "100%",
-						duration: 2,
-						ease: "custom",
+						duration: 1.6,
+						ease: "custom-3",
 					},
-					index * 0.12
+					index * 0.14
 				);
 			});
 
-			masterTl.add(linesTl, "-=1.7");
+			masterTl.add(linesTl, "-=1");
 		});
 
 		masterTl.to(
 			subheadingLines,
 			{
 				y: 0,
-				stagger: 0.12,
-				duration: 1.8,
-				ease: "custom",
+				stagger: 0.14,
+				duration: 1.6,
+				ease: "custom-3",
 			},
 			"<"
 		);
@@ -2163,6 +2163,7 @@ document.addEventListener("DOMContentLoaded", () => {
 	gsap.registerPlugin(CustomEase);
 	CustomEase.create("custom", "M0,0 C0.204,0 0.192,0.726 0.318,0.852 0.45,0.984 0.504,1 1,1");
 	CustomEase.create("custom-2", "M0,0 C0.204,0 0.192,0.6 0.35,0.75 0.5,0.9 0.7,0.98 1,1");
+	CustomEase.create("custom-3", "M0,0 C0.204,0 0.231,0.447 0.323,0.618 0.368,0.702 0.51,0.878 0.606,0.918 0.668,0.943 0.801,1 1,1 ");
 
 	// Set opacity from 0 - this prevents flickering of other animations
 	gsap.set("body", {
