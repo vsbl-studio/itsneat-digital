@@ -442,6 +442,29 @@ function partnersMarqueeAnimation() {
 	const marqueeContent = document.querySelector(".marquee_content");
 	if (!marqueeContent) return;
 
+	const mm = gsap.matchMedia();
+
+	mm.add("(min-width: 992px)", () => {
+		// ScrollTrigger integration
+		ScrollTrigger.create({
+			trigger: ".marquee",
+			start: "top bottom",
+			end: "bottom top",
+			scrub: true,
+			onUpdate: (self) => {
+				const velocity = Math.abs(self.getVelocity()); // Get absolute scroll velocity (handles both up and down scrolling)
+				const scrollSpeedFactor = Math.max(1, velocity / 150); // Scale speed proportionally to velocity
+				updateSpeed(scrollSpeedFactor); // Update marquee speed dynamically
+			},
+			onLeave: () => {
+				updateSpeed(1);
+			},
+			onEnterBack: () => {
+				updateSpeed(1);
+			},
+		});
+	});
+
 	const marqueeWidth = marqueeContent.offsetWidth + 20;
 
 	let marqueeTween = gsap.to(".marquee_content", {
@@ -459,25 +482,6 @@ function partnersMarqueeAnimation() {
 			ease: "linear",
 		});
 	};
-
-	// ScrollTrigger integration
-	ScrollTrigger.create({
-		trigger: ".marquee",
-		start: "top bottom",
-		end: "bottom top",
-		scrub: true,
-		onUpdate: (self) => {
-			const velocity = Math.abs(self.getVelocity()); // Get absolute scroll velocity (handles both up and down scrolling)
-			const scrollSpeedFactor = Math.max(1, velocity / 150); // Scale speed proportionally to velocity
-			updateSpeed(scrollSpeedFactor); // Update marquee speed dynamically
-		},
-		onLeave: () => {
-			updateSpeed(1);
-		},
-		onEnterBack: () => {
-			updateSpeed(1);
-		},
-	});
 }
 
 function customCursorAnimation() {
@@ -548,24 +552,28 @@ function footerParallax() {
 
 		setFooterSize();
 
-		let tl = gsap.timeline({
-			scrollTrigger: {
-				trigger: footer,
-				start: "top bottom",
-				end: "bottom bottom",
-				scrub: 0.01,
-			},
+		const mm = gsap.matchMedia();
+
+		mm.add("(min-width: 992px)", () => {
+			let tl = gsap.timeline({
+				scrollTrigger: {
+					trigger: footer,
+					start: "top bottom",
+					end: "bottom bottom",
+					scrub: 0.01,
+				},
+			});
+
+			tl.from(
+				footerContent,
+				{
+					yPercent: -50,
+					ease: "linear",
+				},
+
+				"<"
+			);
 		});
-
-		tl.from(
-			footerContent,
-			{
-				yPercent: -50,
-				ease: "linear",
-			},
-
-			"<"
-		);
 
 		window.addEventListener("resize", setFooterSize);
 	});
@@ -2095,11 +2103,37 @@ function loadWebflowLottie() {
 	}
 }
 
+function autoRefreshScrollTrigger(data) {
+	const container = data && data.next ? data.next.container : document;
+	const contentContainer = container.querySelector(".main-content");
+	let lastHeight = contentContainer.scrollHeight;
+
+	// Create a MutationObserver to detect changes in the DOM
+	const observer = new MutationObserver(() => {
+		const newHeight = contentContainer.scrollHeight;
+
+		// If the height has changed, refresh ScrollTrigger
+		if (newHeight !== lastHeight) {
+			lastHeight = newHeight;
+			ScrollTrigger.refresh();
+		}
+	});
+
+	// Observe changes in the body and its subtree
+	observer.observe(contentContainer, {
+		childList: true, // Detect added/removed elements
+		subtree: true, // Observe all child elements
+		attributes: true, // Detect attribute changes (useful for CSS changes)
+		characterData: true, // Detect text content changes
+	});
+}
+
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
 	oldScrollTriggers = ScrollTrigger.getAll();
 
+	autoRefreshScrollTrigger(data);
 	projectsListHover();
 	floatingProjectsListImage();
 	setGSAPScroller(data);
