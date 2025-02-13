@@ -1835,6 +1835,13 @@ function projectViewSwitcherAnimation() {
 		setActiveStyle(link);
 	}
 
+	// ✅ Adjust blob on resize
+	function updateBlobOnResize() {
+		if (activeLink) {
+			moveBlob(activeLink);
+		}
+	}
+
 	modeLinks.forEach((link) => {
 		const linkUrl = link.href;
 		// Set active button on initial load
@@ -1857,6 +1864,9 @@ function projectViewSwitcherAnimation() {
 		modeLinkHandlers.set(link, clickHandler);
 		link.addEventListener("click", clickHandler);
 	});
+
+	// ✅ Add window resize event listener
+	window.addEventListener("resize", updateBlobOnResize);
 }
 
 function projectSwitcherDisplay(data, leave = false) {
