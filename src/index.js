@@ -25,10 +25,6 @@ function barbaJS() {
 			const nextFooter = data.next.container.querySelector('[data-footer-parallax="content"]');
 			const logo = document.querySelector('[data-logo-animation="logo"]');
 
-			// Use the logoWidth set by the view
-
-			// On desktop logo shrinks on case-inner
-			// On mobile logo grows on index
 			let mm = gsap.matchMedia();
 
 			// Desktop logo sizing
@@ -169,8 +165,8 @@ function barbaJS() {
 				},
 
 				async beforeEnter(data) {
-					resetFooterLogoMenuStyles();
 					initBeforeEnter(data);
+					resetFooterLogoMenuStyles();
 					await new Promise((resolve) => setTimeout(resolve, 100));
 				},
 
@@ -1739,14 +1735,18 @@ function anchorScrolls() {
 	});
 }
 
-function footerLogoMenu() {
+function footerLogoMenu(data) {
 	const logo = document.querySelector('[data-fade-logo="logo"]');
 	const menu = document.querySelector('[data-footer-menu="menu"]');
 	if (!logo) return;
 
+	const nextContainer = data?.next?.container;
+	const container = nextContainer ? nextContainer : document;
+	const footer = container.querySelector("footer");
+
 	let tl = gsap.timeline({
 		scrollTrigger: {
-			trigger: "footer",
+			trigger: footer,
 			start: `top 15%`,
 			toggleActions: "play none none reverse",
 			toggleClass: { targets: menu, className: "is-footer" },
@@ -2113,37 +2113,11 @@ function loadWebflowLottie() {
 	}
 }
 
-function autoRefreshScrollTrigger(data) {
-	const container = data && data.next ? data.next.container : document;
-	const contentContainer = container.querySelector(".main-content");
-	let lastHeight = contentContainer.scrollHeight;
-
-	// Create a MutationObserver to detect changes in the DOM
-	const observer = new MutationObserver(() => {
-		const newHeight = contentContainer.scrollHeight;
-
-		// If the height has changed, refresh ScrollTrigger
-		if (newHeight !== lastHeight) {
-			lastHeight = newHeight;
-			ScrollTrigger.refresh();
-		}
-	});
-
-	// Observe changes in the body and its subtree
-	observer.observe(contentContainer, {
-		childList: true, // Detect added/removed elements
-		subtree: true, // Observe all child elements
-		attributes: true, // Detect attribute changes (useful for CSS changes)
-		characterData: true, // Detect text content changes
-	});
-}
-
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
 	oldScrollTriggers = ScrollTrigger.getAll();
 
-	autoRefreshScrollTrigger(data);
 	projectsListHover();
 	floatingProjectsListImage();
 	setGSAPScroller(data);
