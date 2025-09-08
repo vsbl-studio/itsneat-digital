@@ -557,7 +557,6 @@ function footerParallax() {
 					start: "top bottom",
 					end: "bottom bottom",
 					scrub: 0.01,
-					markers: true,
 				},
 			});
 
