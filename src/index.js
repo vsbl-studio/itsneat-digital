@@ -557,6 +557,7 @@ function footerParallax() {
 					start: "top bottom",
 					end: "bottom bottom",
 					scrub: 0.01,
+					markers: true,
 				},
 			});
 
@@ -566,9 +567,10 @@ function footerParallax() {
 					yPercent: -50,
 					ease: "linear",
 				},
-
 				"<"
 			);
+
+			window.ScrollTrigger = ScrollTrigger;
 		});
 
 		window.addEventListener("resize", setFooterSize);
@@ -885,21 +887,6 @@ function projectImageMarquee() {
 	});
 }
 
-function projectHideCMS() {
-	const collections = document.querySelectorAll("[data-hide-cms-value]");
-	if (!collections.length) return;
-
-	collections.forEach((collection) => {
-		const hideValue = collection.getAttribute("data-hide-cms-value");
-		const posts = collection.querySelectorAll(".w-dyn-item");
-
-		posts.forEach((post) => {
-			const postName = post.querySelector("[data-hide-cms-name]").getAttribute("data-hide-cms-name");
-			if (postName === hideValue) post.remove();
-		});
-	});
-}
-
 function componentVideoURL() {
 	const videoEmbeds = document.querySelectorAll("[data-component-video]");
 	if (!videoEmbeds.length) return;
@@ -908,6 +895,17 @@ function componentVideoURL() {
 		const videoURL = embed.getAttribute("data-component-video");
 		const video = embed.querySelector("video");
 		const embedSource = embed.querySelector("source");
+
+		// Refresh ScrollTrigger when this video's dimensions are known
+		video.addEventListener(
+			"loadedmetadata",
+			() => {
+				if (window.ScrollTrigger) {
+					ScrollTrigger.refresh();
+				}
+			},
+			{ once: true }
+		);
 
 		embedSource.src = videoURL;
 		video.load();
@@ -2152,8 +2150,6 @@ function initAfterEnter() {
 	if (oldScrollTriggers) {
 		oldScrollTriggers.forEach((trigger) => trigger.kill(false));
 	}
-
-	footerParallax();
 	partnersMarqueeAnimation();
 	customCursorAnimation();
 	projectParallaxAnimation();
@@ -2174,6 +2170,7 @@ function initAfterEnter() {
 	externalUrlNewTab();
 
 	ScrollTrigger.refresh();
+	footerParallax();
 }
 
 document.addEventListener("DOMContentLoaded", () => {
