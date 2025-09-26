@@ -392,32 +392,6 @@ function menuAnimation() {
 		});
 	});
 
-	// Use gsap.matchMedia() for responsive behaviors
-	const mm = gsap.matchMedia();
-
-	mm.add(
-		{
-			// Define a desktop media query
-			isDesktop: "(min-width: 992px)",
-		},
-		() => {
-			// Desktop-specific event listeners
-			menu.addEventListener("mouseenter", () => {
-				animateDropdown(true);
-			});
-
-			menu.addEventListener("mouseleave", () => {
-				animateDropdown(false);
-			});
-
-			// Cleanup function for when the media query no longer matches
-			return () => {
-				menu.removeEventListener("mouseenter", animateDropdown);
-				menu.removeEventListener("mouseleave", animateDropdown);
-			};
-		}
-	);
-
 	button.addEventListener("click", () => {
 		if (!menuOpen) {
 			animateDropdown(true);
@@ -2110,6 +2084,23 @@ function loadWebflowLottie() {
 	}
 }
 
+function honeyPot() {
+	const forms = document.querySelectorAll("form");
+	if (!forms.length) return;
+
+	forms.forEach((form) => {
+		const honeypotInput = form.querySelector('[data-medutis-apsauga="input"]');
+		const submit = form.querySelector('input[type="submit"]');
+
+		if (!honeypotInput || !submit) return;
+		honeypotInput.oninput = function () {
+			if (honeypotInput.value.length > 0) {
+				submit.disabled = true;
+			}
+		};
+	});
+}
+
 let oldScrollTriggers;
 
 function initBeforeEnter(data) {
@@ -2167,6 +2158,7 @@ function initAfterEnter() {
 	footerProjectSwitcherHide();
 	servicesMobileSwiper();
 	externalUrlNewTab();
+	honeyPot();
 
 	ScrollTrigger.refresh();
 	footerParallax();
